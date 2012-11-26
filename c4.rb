@@ -9,8 +9,10 @@ class InvariantError < Error end
 class Game
     GAME_C4 = "C4"
     GAME_OTTO = "OTTO"
+    GAMES = [GAME_OTTO,GAME_C4]
     HEIGHT = 5
-
+    WIDTH = 7
+    
     def initialize
         if not(dif.responds_to? :between? and dif.between?(1,3))
             raise PreconditionError, 'Invalid difficulty.'
@@ -24,12 +26,28 @@ class Game
                 end
             }
         end
+        if not([GAMES].include? strategy)
+            raise PreconditionError, "Strategy should be one of #{[GAMES.inspect]}"
+        end
+
         @players = []
         @difficulty = 0
         @game = GAME_C4 
         @board = Array.new(HEIGHT) { Array.new(WIDTH) } 
+
+        # Initialize our strategy
+        initStrategy
     end
 
+    # Somewhat of a factory method for the strategy but 
+    # we don't yet require a factory abstraction
+    def initStrategy
+        if @game == GAME_C4 
+            @strategy = Otto.new @
+        elsif @game == GAME_OTTO
+            @strategy = Strategy.new @
+        end
+    end
     # Check if nextMove will result in a victory. 
     # If nextMove is nil, then we check the current state.
     def isVictory(nextMove=nil)
@@ -61,14 +79,18 @@ class Strategy
     end
     
     def nextMove
-        raise NotImplementedError, 'Concrete, game specific strategies should implement this.'
+        raise NotImplementedError, 'Concrete, game specific strategies should implement nextMove.'
+    end
+    
+    def isVictory
+        raise NotImplementedError, 'Concrete, game specific strategies should implement isVictory.'
     end
 end
 
 class OttoStrategy < Stragegy
 end
 
-class Connec4Strategy < Strategy
+class Connect4Strategy < Strategy
 end
 
 # The builder is our view in this case.
