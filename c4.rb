@@ -2,7 +2,57 @@
 require 'rubygems'
 require 'gtk2'
 
-class C4Glade
+class GameModel
+    def initialize
+        @players = []
+        @difficulty = 0
+        @game = 0
+        @board = Array.new(HEIGHT) { Array.new(WIDTH) } 
+    end
+
+    # Check if nextMove will result in a victory. 
+    # If nextMove is nil, then we check the current state.
+    def isVictory(nextMove=nil)
+
+    end
+end
+
+class Player
+    TYPE_AI = "AI"
+    TYPE_HUMAN = "HUMAN"
+    def initialize(name,type)
+        @name, @type = name, type
+    end
+end
+
+class Move
+    attr_accessor :x, :y
+    def initialize(x,y)
+        @x, @y = x, y
+    end
+end
+
+class Strategy
+    def initialize(gameModel)
+        # We give the stategy access to the entire gamemodel which
+        # includes the board and stats on players.
+        # Strategy might be player quantity dependent for example
+        @gameModel = gameModel
+    end
+    
+    def nextMove
+        raise NotImplementedError, 'Concrete, game specific strategies should implement this.'
+    end
+end
+
+class OttoStrategy < Stragegy
+end
+
+class Connec4Strategy < Strategy
+end
+
+# The builder is our view in this case.
+class Controller
   attr :glade
 
   def initialize
