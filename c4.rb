@@ -13,7 +13,7 @@ class Game
     HEIGHT = 5
     WIDTH = 7
     
-    def initialize
+    def initialize(dif, players)
         if not(dif.responds_to? :between? and dif.between?(1,3))
             raise PreconditionError, 'Invalid difficulty.'
         end
@@ -48,10 +48,15 @@ class Game
             @strategy = Strategy.new @
         end
     end
-    # Check if nextMove will result in a victory. 
-    # If nextMove is nil, then we check the current state.
-    def isVictory(nextMove=nil)
 
+
+    # Strategy dependent methods are delegated.
+    def win?
+        @strategy.win?
+    end
+    
+    def nextMove
+        @strategy.nextMove
     end
 end
 
@@ -82,8 +87,8 @@ class Strategy
         raise NotImplementedError, 'Concrete, game specific strategies should implement nextMove.'
     end
     
-    def isVictory
-        raise NotImplementedError, 'Concrete, game specific strategies should implement isVictory.'
+    def win?
+        raise NotImplementedError, 'Concrete, game specific strategies should implement win?.'
     end
 end
 
