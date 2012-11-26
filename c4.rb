@@ -2,11 +2,31 @@
 require 'rubygems'
 require 'gtk2'
 
-class GameModel
+class PreconditionError < Error end
+class PostconditionError < Error end
+class InvariantError < Error end
+
+class Game
+    GAME_C4 = "C4"
+    GAME_OTTO = "OTTO"
+    HEIGHT = 5
+
     def initialize
+        if not(dif.responds_to? :between? and dif.between?(1,3))
+            raise PreconditionError, 'Invalid difficulty.'
+        end
+        if not(players.responds_to? :each?))
+            raise PreconditionError, 'Players should be an enumerable.'
+        else
+            players.each { |p| 
+                if not player.kind_of? Player 
+                    raise PreconditionError, 'Players enumerable should only contain player objects.'
+                end
+            }
+        end
         @players = []
         @difficulty = 0
-        @game = 0
+        @game = GAME_C4 
         @board = Array.new(HEIGHT) { Array.new(WIDTH) } 
     end
 
@@ -91,20 +111,11 @@ class Controller
       settingsCancel.signal_connect( "clicked" ) { hideSettings() }
 
 # Attach a signal to each button
-      1.upto(35) { |i| 
+      1.upto(Game::HEIGHT*GAME::WIDTH) { |i| 
          @builder.get_object("button" + i.to_s).signal_connect("clicked") {button_clicked(i)};
       }
 
-# Defines the setting for current game
-# 0 - Connect 4
-# 1 - OTTO TOOT
-      @game = 0
-
-# Defines the difficulty for current game
-# 0 - Easy
-# 1 - Medium
-# 2 - Hard
-      @difficulty = 0
+      @game = Game.new
 
       setUpTheBoard
 
