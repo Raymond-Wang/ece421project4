@@ -1,206 +1,10 @@
 #!/usr/bin/env ruby
 require 'rubygems'
 require 'gtk2'
-require "observer"
 
 require "./error"
-require "./strategy"
-
-class Model
-  include Observable
-end
-
-class Game < Model
-  # Update types for observers
-  U_BOARD = 0
-  U_TURN = 1
-  U_PLAYER = 2
-  U_RESET = 3
-
-  GAME_C4 = 0
-  GAME_OTTO = 1
-  GAMES = [GAME_OTTO,GAME_C4]
-  MIN_DIFFICULTY = 1
-  MAX_DIFFICULTY = 3
-  HEIGHT = 6
-  WIDTH = 7
-
-  attr_accessor :game, :difficulty, :currentPlayer, :board
-  attr_reader :players
-
-  # Row 0 is at the top, Col 0 is on the left
-  # In Connect 4, '1' is player piece, '2' is computer piece
-  # In OTTO TOOT, '1' is O, '2' is T, and computer plays as TOOT
-
-  def initialize(dif=1, players=[], game=GAME_C4)
-    if not(dif.respond_to?(:between?) and dif.between?(MIN_DIFFICULTY,MAX_DIFFICULTY))
-      raise PreconditionError, 'Invalid difficulty.'
-    end
-    if not(GAMES.include? game)
-      raise PreconditionError, "Strategy should be one of #{GAMES.inspect}"
-    end
-
-    # Array of all players. Can be modified dynamically as players leave
-    # and enter.
-    @players = players 
-
-    # Index of the current player.
-    @currentPlayer = 0
-    @turn = 1
-    @difficulty = dif
-    @game = game 
-    @board = Array.new(HEIGHT) { Array.new(WIDTH) } 
-
-    # Initialize our strategy
-    initStrategy
-  end
-  
-  def players=(players)
-    if not(players.respond_to? :each)
-      raise PreconditionError, 'Players should be an enumerable.'
-    else
-      players.each { |p| 
-        if not p.kind_of? Player 
-          raise PreconditionError, 'Players enumerable should only contain player objects.'
-        end
-      }
-    end
-    @players = players
-  end
-
-  # Somewhat of a factory method for the strategy but 
-  # we don't yet require a factory abstraction
-  def initStrategy
-    if @game == GAME_C4 
-      @strategy = C4Strategy.new self
-    elsif @game == GAME_OTTO
-      @strategy = OttoStrategy.new self
-    end
-  end
-
-  # Strategy dependent methods are delegated.
-  def win?
-    @strategy.win?
-  end
-
-  def move
-    @strategy.move
-  end
-
-  # col is the 0 indexed column
-  def check_col(col)
-    (0...HEIGHT).each { |r|
-      if @board[r][col] == nil
-        return true
-      end
-    }
-    false
-  end
-
-  # Col is 0 indexed
-  def place_tile(col)
-    if not col.between?(0,WIDTH-1)
-      raise PreconditionError, "Column outside of range."
-    end
-    return false unless check_col(col)
-    r,c = next_tile(col)
-    @board[r][c] = current_piece
-    changed(true)
-    # Provide 1 indexed values externally.
-    notify_observers U_BOARD, r, c, @board[r][c]
-    next_turn
-    true
-  end
-
-  def reset
-    @turn = 0
-    @currentPlayer = 0
-    (0...HEIGHT).each do |r|
-      (0...WIDTH).each do |c|
-        @board[r][c] = nil
-        changed(true)
-        notify_observers U_BOARD, r, c, @board[r][c]
-      end
-    end
-  end
-
-
-  def get_tile(r,c) 
-    if not r.between?(1,HEIGHT)
-      raise PreconditionError, "Row outside of range."
-    end
-
-    if not c.between?(1,WIDTH)
-      raise PreconditionError, "Col outside of range."
-    end
-  end
-
-  def next_turn
-    @turn = @turn + 1
-
-    @currentPlayer = (@currentPlayer + 1) % @players.length
-    changed(true)
-    notify_observers U_PLAYER, @currentPlayer, @players[@currentPlayer]
-  end
-
-  def turn=(val)
-    p "turn changed"
-    @turn = val
-    changed(true)
-    notify_observers U_TURN, @turn
-  end
-
-  def current_piece
-    # Happens to work for now.
-    @currentPlayer + 1
-  end
-
-  # col should be 0 indexed
-  # TODO private
-  def next_tile(col)
-    result = nil
-    (HEIGHT-1).downto(0) { |i|
-      if @board[i][col] == nil
-        result = [i,col]
-        break
-      end
-    }
-    if result != nil 
-      r, c = result
-      if not r.between?(0,HEIGHT-1) then raise PostconditionError, "Row outside of range." end
-      if not c.between?(0,WIDTH-1) then raise PostconditionError, "Col outside of range." end
-    end
-    result
-  end
-
-  # Returns 0 indexed row and column for element number i (if we start at
-  # the top left and increase by one towards the bottom right).
-  def indices(i)
-    [(i/WIDTH),(i-1) % (WIDTH)]
-  end
-end
-
-class Player < Model
-  TYPE_AI = 'AI'
-  TYPE_HUMAN = 'HUMAN'
-
-  attr_accessor :type, :name
-
-  def initialize(name,type)
-    @name, @type = name, type
-  end
-
-  def move
-  end
-end
-
-class Move < Model
-  attr_accessor :x, :y
-  def initialize(x,y)
-    @x, @y = x, y
-  end
-end
-
+require "./models"
+#
 # The builder is our view in this case.
 class Controller
   attr :glade
@@ -246,13 +50,11 @@ class Controller
       }
 
       @game = Game.new 1
-
       @game.players = [Player.new('jacob', Player::TYPE_AI), Player.new('raymond', Player::TYPE_AI)]
-
       # Register observer
       @game.add_observer self, :update
-
-      setUpTheBoard
+      # Synchronize ui
+      @game.sync
 
       window.show()
       Gtk.main()
@@ -260,7 +62,6 @@ class Controller
   end
 
   def update(what,*args)
-    p "Updating"
     case what
     when Game::U_BOARD
       update_board *args
@@ -270,6 +71,8 @@ class Controller
       update_player *args
     when Game::U_TURN
       update_turn *args
+    when Game::U_GAME
+      update_game *args
     end
   end
 
@@ -278,17 +81,35 @@ class Controller
     @builder.get_object("image#{i}").pixbuf = Gdk::Pixbuf.new(image_for_piece(piece))
   end
 
+  def update_game(game)
+    @game = game
+    @builder.get_object("game_type").text = game
+  end
+
+  def update_turn(turn)
+    @builder.get_object("turn").text = "Turn: #{turn}" 
+  end
+
+  def update_game(game)
+    case game
+    when Game::GAME_OTTO
+      label = "Otto"
+    when Game::GAME_C4
+      label = "Connect 4"
+    end
+    @builder.get_object("game_type").text = label
+  end
+
   def update_player(current,player)
     @game.players.each_with_index do |player,i|
-      i = i+1
-      p "current player"
-      p i
+      label = @builder.get_object("player#{i+1}")
+      desc = @builder.get_object("player#{i+1}desc")
       if current != i 
-        @builder.get_object("player#{i}").text = "#{player.name}"
-        @builder.get_object("player#{i}desc").text = "#{player.type}"
+        label.text = "#{player.name}"
+        desc.text = "#{player.type}"
       else
-        @builder.get_object("player#{i}").text = "<font color=\"#0097ff\">*#{player.name}</font>"
-        @builder.get_object("player#{i}desc").text = "#{player.type}"
+        label.set_markup("<span weight=\"bold\" foreground=\"#0097ff\">*#{player.name}</span>")
+        desc.text = "#{player.type}"
       end
     end
   end
@@ -312,6 +133,7 @@ class Controller
       end
     end
   end
+  private 
 
 
   def openSettings
@@ -322,6 +144,7 @@ class Controller
     gameCombo.active=@game.game
     difficultyCombo.active=@game.difficulty
   end
+  private 
 
   def saveSettings
     gameCombo = @builder.get_object("GameCombo")
@@ -335,29 +158,23 @@ class Controller
     end
     hideSettings()
   end
+  private
 
   def hideSettings
     dialog = @builder.get_object("dialog1")
     dialog.hide()
   end
+  private
 
   def openAbout
     about = @builder.get_object("window2")
     about.show()
   end
-
-  def setUpTheBoard
-
-  end
-
+  private
+  
   def button_clicked(col)
     @game.place_tile(col-1)
   end  
-
-  def win?
-
-  end
-
 
   def threes(a,b,c)
   end
