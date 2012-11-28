@@ -2,131 +2,45 @@
 <interface>
   <requires lib="gtk+" version="2.16"/>
   <!-- interface-naming-policy project-wide -->
-  <object class="GtkDialog" id="dialog1">
+  <object class="GtkImage" id="DownPeep">
+    <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="border_width">5</property>
-    <property name="type_hint">normal</property>
-    <child internal-child="vbox">
-      <object class="GtkVBox" id="dialog-vbox1">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkHButtonBox" id="dialog-action_area1">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-            <child>
-              <object class="GtkButton" id="SettingsOK">
-                <property name="label" translatable="yes">OK</property>
-                <property name="use_action_appearance">False</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="SettingsCancel">
-                <property name="label" translatable="yes">Cancel</property>
-                <property name="use_action_appearance">False</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="pack_type">end</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkTable" id="table2">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="n_rows">2</property>
-            <property name="n_columns">2</property>
-            <child>
-              <object class="GtkLabel" id="label1">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Game</property>
-              </object>
-            </child>
-            <child>
-              <object class="GtkLabel" id="label2">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Difficulty</property>
-              </object>
-              <packing>
-                <property name="top_attach">1</property>
-                <property name="bottom_attach">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBox" id="GameCombo">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="model">liststore1</property>
-                <child>
-                  <object class="GtkCellRendererText" id="cellrenderertext1"/>
-                  <attributes>
-                    <attribute name="text">0</attribute>
-                  </attributes>
-                </child>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">2</property>
-                <property name="y_options">GTK_EXPAND</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkComboBox" id="DifficultyCombo">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="model">liststore2</property>
-                <child>
-                  <object class="GtkCellRendererText" id="cellrenderertext2"/>
-                  <attributes>
-                    <attribute name="text">0</attribute>
-                  </attributes>
-                </child>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">2</property>
-                <property name="top_attach">1</property>
-                <property name="bottom_attach">2</property>
-                <property name="y_options">GTK_EXPAND</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-      </object>
-    </child>
-    <action-widgets>
-      <action-widget response="0">SettingsOK</action-widget>
-      <action-widget response="0">SettingsCancel</action-widget>
-    </action-widgets>
+    <property name="pixbuf">user_download.png</property>
+  </object>
+  <object class="GtkImage" id="DownPeep1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">user_download.png</property>
+  </object>
+  <object class="GtkImage" id="DownPeep2">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">user_download.png</property>
+  </object>
+  <object class="GtkImage" id="DownPeep3">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">user_download.png</property>
+  </object>
+  <object class="GtkImage" id="DownPeep4">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">user_download.png</property>
+  </object>
+  <object class="GtkImage" id="DownPeep5">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">user_download.png</property>
+  </object>
+  <object class="GtkImage" id="DownPeep6">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">user_download.png</property>
+  </object>
+  <object class="GtkImage" id="image0000">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-missing-image</property>
   </object>
   <object class="GtkListStore" id="liststore1">
     <columns>
@@ -142,35 +56,16 @@
       </row>
     </data>
   </object>
-  <object class="GtkListStore" id="liststore2">
-    <columns>
-      <!-- column-name gchararray1 -->
-      <column type="gchararray"/>
-    </columns>
-    <data>
-      <row>
-        <col id="0" translatable="yes">Easy</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Medium</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Hard</col>
-      </row>
-    </data>
-  </object>
   <object class="GtkWindow" id="window1">
-    <property name="width_request">860</property>
-    <property name="height_request">800</property>
+    <property name="width_request">300</property>
+    <property name="height_request">300</property>
     <property name="can_focus">False</property>
     <property name="resizable">False</property>
     <child>
       <object class="GtkTable" id="table1">
-        <property name="width_request">300</property>
-        <property name="height_request">297</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="n_rows">9</property>
+        <property name="n_rows">8</property>
         <property name="n_columns">7</property>
         <child>
           <object class="GtkMenuBar" id="menubar1">
@@ -199,11 +94,12 @@
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="Settings">
-                        <property name="label">gtk-preferences</property>
+                        <property name="label">Settings</property>
                         <property name="use_action_appearance">False</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_stock">True</property>
+                        <property name="image">image0000</property>
+                        <property name="use_stock">False</property>
                       </object>
                     </child>
                     <child>
@@ -261,83 +157,172 @@
           <object class="GtkImage" id="image1">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
-            <property name="top_attach">3</property>
-            <property name="bottom_attach">4</property>
+            <property name="top_attach">2</property>
+            <property name="bottom_attach">3</property>
           </packing>
         </child>
         <child>
           <object class="GtkImage" id="image2">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">1</property>
             <property name="right_attach">2</property>
-            <property name="top_attach">3</property>
-            <property name="bottom_attach">4</property>
+            <property name="top_attach">2</property>
+            <property name="bottom_attach">3</property>
           </packing>
         </child>
         <child>
           <object class="GtkImage" id="image3">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">2</property>
             <property name="right_attach">3</property>
-            <property name="top_attach">3</property>
-            <property name="bottom_attach">4</property>
+            <property name="top_attach">2</property>
+            <property name="bottom_attach">3</property>
           </packing>
         </child>
         <child>
           <object class="GtkImage" id="image4">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">3</property>
             <property name="right_attach">4</property>
-            <property name="top_attach">3</property>
-            <property name="bottom_attach">4</property>
+            <property name="top_attach">2</property>
+            <property name="bottom_attach">3</property>
           </packing>
         </child>
         <child>
           <object class="GtkImage" id="image5">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">4</property>
             <property name="right_attach">5</property>
-            <property name="top_attach">3</property>
-            <property name="bottom_attach">4</property>
+            <property name="top_attach">2</property>
+            <property name="bottom_attach">3</property>
           </packing>
         </child>
         <child>
           <object class="GtkImage" id="image6">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">5</property>
             <property name="right_attach">6</property>
-            <property name="top_attach">3</property>
-            <property name="bottom_attach">4</property>
+            <property name="top_attach">2</property>
+            <property name="bottom_attach">3</property>
           </packing>
         </child>
         <child>
           <object class="GtkImage" id="image7">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="left_attach">6</property>
+            <property name="right_attach">7</property>
+            <property name="top_attach">2</property>
+            <property name="bottom_attach">3</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image8">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="top_attach">3</property>
+            <property name="bottom_attach">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image9">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="left_attach">1</property>
+            <property name="right_attach">2</property>
+            <property name="top_attach">3</property>
+            <property name="bottom_attach">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image10">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="left_attach">2</property>
+            <property name="right_attach">3</property>
+            <property name="top_attach">3</property>
+            <property name="bottom_attach">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image11">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="left_attach">3</property>
+            <property name="right_attach">4</property>
+            <property name="top_attach">3</property>
+            <property name="bottom_attach">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image12">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="left_attach">4</property>
+            <property name="right_attach">5</property>
+            <property name="top_attach">3</property>
+            <property name="bottom_attach">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image13">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="left_attach">5</property>
+            <property name="right_attach">6</property>
+            <property name="top_attach">3</property>
+            <property name="bottom_attach">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image14">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">6</property>
@@ -347,175 +332,175 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image8">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
-          </object>
-          <packing>
-            <property name="top_attach">4</property>
-            <property name="bottom_attach">5</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkImage" id="image9">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
-          </object>
-          <packing>
-            <property name="left_attach">1</property>
-            <property name="right_attach">2</property>
-            <property name="top_attach">4</property>
-            <property name="bottom_attach">5</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkImage" id="image10">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
-          </object>
-          <packing>
-            <property name="left_attach">2</property>
-            <property name="right_attach">3</property>
-            <property name="top_attach">4</property>
-            <property name="bottom_attach">5</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkImage" id="image11">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
-          </object>
-          <packing>
-            <property name="left_attach">3</property>
-            <property name="right_attach">4</property>
-            <property name="top_attach">4</property>
-            <property name="bottom_attach">5</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkImage" id="image12">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
-          </object>
-          <packing>
-            <property name="left_attach">4</property>
-            <property name="right_attach">5</property>
-            <property name="top_attach">4</property>
-            <property name="bottom_attach">5</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkImage" id="image13">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
-          </object>
-          <packing>
-            <property name="left_attach">5</property>
-            <property name="right_attach">6</property>
-            <property name="top_attach">4</property>
-            <property name="bottom_attach">5</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkImage" id="image14">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
-          </object>
-          <packing>
-            <property name="left_attach">6</property>
-            <property name="right_attach">7</property>
-            <property name="top_attach">4</property>
-            <property name="bottom_attach">5</property>
-          </packing>
-        </child>
-        <child>
           <object class="GtkImage" id="image15">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
-            <property name="top_attach">5</property>
-            <property name="bottom_attach">6</property>
+            <property name="top_attach">4</property>
+            <property name="bottom_attach">5</property>
           </packing>
         </child>
         <child>
           <object class="GtkImage" id="image16">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">1</property>
             <property name="right_attach">2</property>
-            <property name="top_attach">5</property>
-            <property name="bottom_attach">6</property>
+            <property name="top_attach">4</property>
+            <property name="bottom_attach">5</property>
           </packing>
         </child>
         <child>
           <object class="GtkImage" id="image17">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">2</property>
             <property name="right_attach">3</property>
-            <property name="top_attach">5</property>
-            <property name="bottom_attach">6</property>
+            <property name="top_attach">4</property>
+            <property name="bottom_attach">5</property>
           </packing>
         </child>
         <child>
           <object class="GtkImage" id="image18">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">3</property>
             <property name="right_attach">4</property>
-            <property name="top_attach">5</property>
-            <property name="bottom_attach">6</property>
+            <property name="top_attach">4</property>
+            <property name="bottom_attach">5</property>
           </packing>
         </child>
         <child>
           <object class="GtkImage" id="image19">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">4</property>
             <property name="right_attach">5</property>
-            <property name="top_attach">5</property>
-            <property name="bottom_attach">6</property>
+            <property name="top_attach">4</property>
+            <property name="bottom_attach">5</property>
           </packing>
         </child>
         <child>
           <object class="GtkImage" id="image20">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">5</property>
             <property name="right_attach">6</property>
-            <property name="top_attach">5</property>
-            <property name="bottom_attach">6</property>
+            <property name="top_attach">4</property>
+            <property name="bottom_attach">5</property>
           </packing>
         </child>
         <child>
           <object class="GtkImage" id="image21">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="left_attach">6</property>
+            <property name="right_attach">7</property>
+            <property name="top_attach">4</property>
+            <property name="bottom_attach">5</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image22">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="top_attach">5</property>
+            <property name="bottom_attach">6</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image23">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="left_attach">1</property>
+            <property name="right_attach">2</property>
+            <property name="top_attach">5</property>
+            <property name="bottom_attach">6</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image24">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="left_attach">2</property>
+            <property name="right_attach">3</property>
+            <property name="top_attach">5</property>
+            <property name="bottom_attach">6</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image25">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="left_attach">3</property>
+            <property name="right_attach">4</property>
+            <property name="top_attach">5</property>
+            <property name="bottom_attach">6</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image26">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="left_attach">4</property>
+            <property name="right_attach">5</property>
+            <property name="top_attach">5</property>
+            <property name="bottom_attach">6</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image27">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
+          </object>
+          <packing>
+            <property name="left_attach">5</property>
+            <property name="right_attach">6</property>
+            <property name="top_attach">5</property>
+            <property name="bottom_attach">6</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkImage" id="image28">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">6</property>
@@ -525,10 +510,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image22">
+          <object class="GtkImage" id="image29">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="top_attach">6</property>
@@ -536,10 +521,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image23">
+          <object class="GtkImage" id="image30">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">1</property>
@@ -549,10 +534,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image24">
+          <object class="GtkImage" id="image31">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">2</property>
@@ -562,10 +547,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image25">
+          <object class="GtkImage" id="image32">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">3</property>
@@ -575,10 +560,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image26">
+          <object class="GtkImage" id="image33">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">4</property>
@@ -588,10 +573,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image27">
+          <object class="GtkImage" id="image34">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">5</property>
@@ -601,10 +586,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image28">
+          <object class="GtkImage" id="image35">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">6</property>
@@ -614,10 +599,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image29">
+          <object class="GtkImage" id="image36">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="top_attach">7</property>
@@ -625,10 +610,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image30">
+          <object class="GtkImage" id="image37">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">1</property>
@@ -638,10 +623,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image31">
+          <object class="GtkImage" id="image38">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">2</property>
@@ -651,10 +636,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image32">
+          <object class="GtkImage" id="image39">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">3</property>
@@ -664,10 +649,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image33">
+          <object class="GtkImage" id="image40">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">4</property>
@@ -677,10 +662,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image34">
+          <object class="GtkImage" id="image41">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">5</property>
@@ -690,10 +675,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkImage" id="image35">
+          <object class="GtkImage" id="image42">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
+            <property name="stock">gtk-missing-image</property>
           </object>
           <packing>
             <property name="left_attach">6</property>
@@ -704,319 +689,123 @@
         </child>
         <child>
           <object class="GtkButton" id="button1">
+            <property name="label" translatable="yes">
+</property>
             <property name="use_action_appearance">False</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="relief">none</property>
-            <property name="focus_on_click">False</property>
-            <property name="yalign">0.40000000596046448</property>
-            <child>
-              <object class="GtkImage" id="col1image">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="pixbuf">down_arrow.png</property>
-              </object>
-            </child>
+            <property name="image">DownPeep</property>
+            <property name="yalign">0.40999999642372131</property>
           </object>
           <packing>
-            <property name="top_attach">2</property>
-            <property name="bottom_attach">3</property>
+            <property name="top_attach">1</property>
+            <property name="bottom_attach">2</property>
           </packing>
         </child>
         <child>
           <object class="GtkButton" id="button2">
+            <property name="label" translatable="yes">
+</property>
             <property name="use_action_appearance">False</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="relief">none</property>
-            <property name="focus_on_click">False</property>
-            <property name="yalign">0.40000000596046448</property>
-            <child>
-              <object class="GtkImage" id="col2image">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="pixbuf">down_arrow.png</property>
-              </object>
-            </child>
+            <property name="image">DownPeep1</property>
+            <property name="yalign">0.40999999642372131</property>
           </object>
           <packing>
             <property name="left_attach">1</property>
             <property name="right_attach">2</property>
-            <property name="top_attach">2</property>
-            <property name="bottom_attach">3</property>
+            <property name="top_attach">1</property>
+            <property name="bottom_attach">2</property>
           </packing>
         </child>
         <child>
           <object class="GtkButton" id="button3">
+            <property name="label" translatable="yes">
+</property>
             <property name="use_action_appearance">False</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="relief">none</property>
-            <property name="focus_on_click">False</property>
-            <property name="yalign">0.40000000596046448</property>
-            <child>
-              <object class="GtkImage" id="col3mage">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="pixbuf">down_arrow.png</property>
-              </object>
-            </child>
+            <property name="image">DownPeep2</property>
+            <property name="yalign">0.40999999642372131</property>
           </object>
           <packing>
             <property name="left_attach">2</property>
             <property name="right_attach">3</property>
-            <property name="top_attach">2</property>
-            <property name="bottom_attach">3</property>
+            <property name="top_attach">1</property>
+            <property name="bottom_attach">2</property>
           </packing>
         </child>
         <child>
           <object class="GtkButton" id="button4">
+            <property name="label" translatable="yes">
+</property>
             <property name="use_action_appearance">False</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="relief">none</property>
-            <property name="focus_on_click">False</property>
-            <property name="yalign">0.40000000596046448</property>
-            <child>
-              <object class="GtkImage" id="col4image">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="pixbuf">down_arrow.png</property>
-              </object>
-            </child>
+            <property name="image">DownPeep3</property>
+            <property name="yalign">0.40999999642372131</property>
           </object>
           <packing>
             <property name="left_attach">3</property>
             <property name="right_attach">4</property>
-            <property name="top_attach">2</property>
-            <property name="bottom_attach">3</property>
+            <property name="top_attach">1</property>
+            <property name="bottom_attach">2</property>
           </packing>
         </child>
         <child>
           <object class="GtkButton" id="button5">
+            <property name="label" translatable="yes">
+</property>
             <property name="use_action_appearance">False</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="relief">none</property>
-            <property name="focus_on_click">False</property>
-            <property name="yalign">0.40000000596046448</property>
-            <child>
-              <object class="GtkImage" id="col5image">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="pixbuf">down_arrow.png</property>
-              </object>
-            </child>
+            <property name="image">DownPeep4</property>
+            <property name="yalign">0.40999999642372131</property>
           </object>
           <packing>
             <property name="left_attach">4</property>
             <property name="right_attach">5</property>
-            <property name="top_attach">2</property>
-            <property name="bottom_attach">3</property>
+            <property name="top_attach">1</property>
+            <property name="bottom_attach">2</property>
           </packing>
         </child>
         <child>
           <object class="GtkButton" id="button6">
+            <property name="label" translatable="yes">
+</property>
             <property name="use_action_appearance">False</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="relief">none</property>
-            <property name="focus_on_click">False</property>
-            <property name="yalign">0.40000000596046448</property>
-            <child>
-              <object class="GtkImage" id="col6image">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="pixbuf">down_arrow.png</property>
-              </object>
-            </child>
+            <property name="image">DownPeep5</property>
+            <property name="yalign">0.40999999642372131</property>
           </object>
           <packing>
             <property name="left_attach">5</property>
             <property name="right_attach">6</property>
-            <property name="top_attach">2</property>
-            <property name="bottom_attach">3</property>
+            <property name="top_attach">1</property>
+            <property name="bottom_attach">2</property>
           </packing>
         </child>
         <child>
           <object class="GtkButton" id="button7">
+            <property name="label" translatable="yes">
+</property>
             <property name="use_action_appearance">False</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="relief">none</property>
-            <property name="focus_on_click">False</property>
-            <property name="yalign">0.40000000596046448</property>
-            <child>
-              <object class="GtkImage" id="col7mage">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="pixbuf">down_arrow.png</property>
-              </object>
-            </child>
+            <property name="image">DownPeep6</property>
+            <property name="yalign">0.40999999642372131</property>
           </object>
           <packing>
             <property name="left_attach">6</property>
-            <property name="right_attach">7</property>
-            <property name="top_attach">2</property>
-            <property name="bottom_attach">3</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkImage" id="image36">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
-          </object>
-          <packing>
-            <property name="top_attach">8</property>
-            <property name="bottom_attach">9</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkImage" id="image37">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
-          </object>
-          <packing>
-            <property name="left_attach">1</property>
-            <property name="right_attach">2</property>
-            <property name="top_attach">8</property>
-            <property name="bottom_attach">9</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkImage" id="image38">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
-          </object>
-          <packing>
-            <property name="left_attach">2</property>
-            <property name="right_attach">3</property>
-            <property name="top_attach">8</property>
-            <property name="bottom_attach">9</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkImage" id="image39">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
-          </object>
-          <packing>
-            <property name="left_attach">3</property>
-            <property name="right_attach">4</property>
-            <property name="top_attach">8</property>
-            <property name="bottom_attach">9</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkImage" id="image40">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
-          </object>
-          <packing>
-            <property name="left_attach">4</property>
-            <property name="right_attach">5</property>
-            <property name="top_attach">8</property>
-            <property name="bottom_attach">9</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkImage" id="image41">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
-          </object>
-          <packing>
-            <property name="left_attach">5</property>
-            <property name="right_attach">6</property>
-            <property name="top_attach">8</property>
-            <property name="bottom_attach">9</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkImage" id="image42">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="pixbuf">frame.png</property>
-          </object>
-          <packing>
-            <property name="left_attach">6</property>
-            <property name="right_attach">7</property>
-            <property name="top_attach">8</property>
-            <property name="bottom_attach">9</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkTable" id="table3">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="n_rows">2</property>
-            <property name="n_columns">3</property>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <object class="GtkLabel" id="play1">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">
-</property>
-              </object>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <object class="GtkLabel" id="player2">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">
-</property>
-              </object>
-              <packing>
-                <property name="top_attach">1</property>
-                <property name="bottom_attach">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="player1desc">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">
-</property>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="player2desc">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">
-</property>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">2</property>
-                <property name="top_attach">1</property>
-                <property name="bottom_attach">2</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
             <property name="right_attach">7</property>
             <property name="top_attach">1</property>
             <property name="bottom_attach">2</property>

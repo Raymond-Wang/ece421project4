@@ -13,6 +13,8 @@ end
 class Game < Model
   # Update types for observers
   U_BOARD = 0
+  U_TURN = 1
+  U_PLAYER = 2
 
   GAME_C4 = 0
   GAME_OTTO = 1
@@ -146,7 +148,12 @@ class Game < Model
 
   def next_turn
     @turn = @turn + 1
+    changed(true)
+    notify_observers U_TURN, @turn
+
     @currentPlayer = (@currentPlayer + 1) % @players.length
+    changed(true)
+    notify_observers U_PLAYER, @currentPlayer, @players[@currentPlayer]
   end
 
   def current_piece
