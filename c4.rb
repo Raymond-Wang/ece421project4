@@ -71,21 +71,9 @@ class Game < Model
   # we don't yet require a factory abstraction
   def initStrategy
     if @game == GAME_C4 
-      if @difficulty == 1
-        @strategy = C4Easy.new self
-      elsif @difficulty == 2
-        @strategy = C4Medium.new self
-      elsif @difficulty == 3
-        @strategy = C4Hard.new self
-      end
+      @strategy = C4Strategy.new self
     elsif @game == GAME_OTTO
-      if @difficulty == 1
-        @strategy = OttoEasy.new self
-      elsif @difficulty == 2
-        @strategy = OttoMedium.new self
-      elsif @difficulty == 3
-        @strategy = OttoHard.new self
-      end
+      @strategy = OttoStrategy.new self
     end
   end
 
