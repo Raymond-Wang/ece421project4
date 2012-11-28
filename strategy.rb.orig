@@ -8,11 +8,15 @@ require "./models"
 #
 # Ideas (might be overkill!!)
 # http://en.wikipedia.org/wiki/Minimax#Minimax_algorithm_with_alternate_moves
-class Strategy
+<<<<<<< HEAD
+class Strategy 
+=======
+class Strategy < Model
   ONGOING = 0
   P1_WIN = 1
   P2_WIN = 2
   DRAW = 3
+>>>>>>> dc774968680be799a37a3b5d168da84a9ae8df30
   def initialize(game)
     # We give the stategy access to the entire gamemodel which
     # includes the board and stats on players.

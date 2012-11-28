@@ -174,11 +174,8 @@ class Controller
   
   def button_clicked(col)
     @game.place_tile(col-1)
+    @game.place_tile(@game.move)
   end  
-
-  def threes(a,b,c)
-  end
-
 
   def gtk_main_quit
     Gtk.main_quit()
