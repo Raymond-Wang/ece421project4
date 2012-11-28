@@ -7,85 +7,85 @@ class PostconditionError < StandardError; end
 class InvariantError < StandardError; end
 
 class Game
-    GAME_C4 = 'C4'
-    GAME_OTTO = 'OTTO'
-    GAMES = [GAME_OTTO,GAME_C4]
-    MIN_DIFFICULTY = 0
-    MAX_DIFFICULTY = 3
-    HEIGHT = 6
-    WIDTH = 7
-    # Row 0 is at the top, Col 0 is on the left
-    # In Connect 4, '1' is player piece, '2' is computer piece
-    # In OTTO TOOT, '1' is O, '2' is T, and computer plays as TOOT
-    
-    def initialize(dif, players=[], game=GAME_C4)
-        if not(dif.respond_to? :between? and dif.between?(MIN_DIFFICULTY,MAX_DIFFICULTY))
-            raise PreconditionError, 'Invalid difficulty.'
-        end
-        if not(players.respond_to? :each)
-            raise PreconditionError, 'Players should be an enumerable.'
-        else
-            players.each { |p| 
-                if not player.kind_of? Player 
-                    raise PreconditionError, 'Players enumerable should only contain player objects.'
-                end
-            }
-        end
-        print game
-        if not(GAMES.include? game)
-            raise PreconditionError, "Strategy should be one of #{GAMES.inspect}"
-        end
+  GAME_C4 = 'C4'
+  GAME_OTTO = 'OTTO'
+  GAMES = [GAME_OTTO,GAME_C4]
+  MIN_DIFFICULTY = 0
+  MAX_DIFFICULTY = 3
+  HEIGHT = 6
+  WIDTH = 7
+  # Row 0 is at the top, Col 0 is on the left
+  # In Connect 4, '1' is player piece, '2' is computer piece
+  # In OTTO TOOT, '1' is O, '2' is T, and computer plays as TOOT
 
-        # Array of all players. Can be modified dynamically as players leave
-        # and enter.
-        @players = players 
-        # Index of the current player.
-        @currentPlayer = 0
-        @difficulty = dif
-        @game = game 
-        @board = Array.new(HEIGHT) { Array.new(WIDTH) } 
-
-        # Initialize our strategy
-        initStrategy
+  def initialize(dif, players=[], game=GAME_C4)
+    if not(dif.respond_to? :between? and dif.between?(MIN_DIFFICULTY,MAX_DIFFICULTY))
+      raise PreconditionError, 'Invalid difficulty.'
+    end
+    if not(players.respond_to? :each)
+      raise PreconditionError, 'Players should be an enumerable.'
+    else
+      players.each { |p| 
+        if not player.kind_of? Player 
+          raise PreconditionError, 'Players enumerable should only contain player objects.'
+        end
+      }
+    end
+    print game
+    if not(GAMES.include? game)
+      raise PreconditionError, "Strategy should be one of #{GAMES.inspect}"
     end
 
-    # Somewhat of a factory method for the strategy but 
-    # we don't yet require a factory abstraction
-    def initStrategy
-        if @game == GAME_C4 
-            @strategy = C4Easy.new self
-        elsif @game == GAME_OTTO
-            @strategy = OttoEasy.new self
-        end
-    end
+    # Array of all players. Can be modified dynamically as players leave
+    # and enter.
+    @players = players 
+    # Index of the current player.
+    @currentPlayer = 0
+    @difficulty = dif
+    @game = game 
+    @board = Array.new(HEIGHT) { Array.new(WIDTH) } 
 
-    # Strategy dependent methods are delegated.
-    def win?
-        @strategy.win?
+    # Initialize our strategy
+    initStrategy
+  end
+
+  # Somewhat of a factory method for the strategy but 
+  # we don't yet require a factory abstraction
+  def initStrategy
+    if @game == GAME_C4 
+      @strategy = C4Easy.new self
+    elsif @game == GAME_OTTO
+      @strategy = OttoEasy.new self
     end
-    
-    def move
-        @strategy.move
-    end
+  end
+
+  # Strategy dependent methods are delegated.
+  def win?
+    @strategy.win?
+  end
+
+  def move
+    @strategy.move
+  end
 end
 
 class Player
-    TYPE_AI = 'AI'
-    TYPE_HUMAN = 'HUMAN'
+  TYPE_AI = 'AI'
+  TYPE_HUMAN = 'HUMAN'
 
-    def initialize(name,type)
-        @name, @type = name, type
-    end
+  def initialize(name,type)
+    @name, @type = name, type
+  end
 
-    def move
-    end
+  def move
+  end
 end
 
 class Move
-    attr_accessor :x, :y
-    def initialize(x,y)
-        @x, @y = x, y
-    end
+  attr_accessor :x, :y
+  def initialize(x,y)
+    @x, @y = x, y
+  end
 end
 
 # NOTE Strategies can have their own instance variables to help manage things.
@@ -97,278 +97,278 @@ end
 # Ideas (might be overkill!!)
 # http://en.wikipedia.org/wiki/Minimax#Minimax_algorithm_with_alternate_moves
 class Strategy
-    def initialize(game)
-        # We give the stategy access to the entire gamemodel which
-        # includes the board and stats on players.
-        # Strategy might be player quantity dependent for example
-        @game = game
-    end
+  def initialize(game)
+    # We give the stategy access to the entire gamemodel which
+    # includes the board and stats on players.
+    # Strategy might be player quantity dependent for example
+    @game = game
+  end
 
-    def horizontal(i,j,arr)
-	for k in 0..(arr.length-1)
-	    if @board[i][j+k] != arr[k]
-		return false
-	    end
-	end
-	return true
+  def horizontal(i,j,arr)
+    for k in 0..(arr.length-1)
+      if @board[i][j+k] != arr[k]
+        return false
+      end
     end
+    return true
+  end
 
-    def vertical(i,j,arr)
-	for k in 0..(arr.length-1)
-	    if @board[i+k][j] != arr[k]
-		return false
-	    end
-	end
-	return true
+  def vertical(i,j,arr)
+    for k in 0..(arr.length-1)
+      if @board[i+k][j] != arr[k]
+        return false
+      end
     end
+    return true
+  end
 
-    def diagonaldown(i,j,arr)
-	for k in 0..(arr.length-1)
-	    if @board[i+k][j+k] != arr[k]
-		return false
-	    end
-	end
-	return true
+  def diagonaldown(i,j,arr)
+    for k in 0..(arr.length-1)
+      if @board[i+k][j+k] != arr[k]
+        return false
+      end
     end
+    return true
+  end
 
-    def diagonalup(i,j,arr)
-	for k in 0..(arr.length-1)
-	    if @board[i-k][j+k] != arr[k]
-		return false
-	    end
-	end
-	return true
+  def diagonalup(i,j,arr)
+    for k in 0..(arr.length-1)
+      if @board[i-k][j+k] != arr[k]
+        return false
+      end
     end
+    return true
+  end
 
-    def find(arr)
-	if (arr.length > 6)
-	    raise PreconditionError, 'Search array too long.'
-	end
-	if (arr.empty)
-	    raise PreconditionError, 'Search array is empty.'
-	end
-	for i in 0..5
-	    for j in 0..(7-arr.length)
-		if horizontal(i,j,arr)
-		    return i,j,'horizontal'
-		end
-	    end
-	end
-	for i in 0..(6-arr.length)
-	    for j in 0..6
-		if vertical(i,j,arr)
-		    return i,j,'vertical'
-		end
-	    end
-	end
-	for i in 0..(6-arr.length)
-	    for j in 0..(7-arr.length)
-		if diagonaldown(i,j,arr)
-		    return i,j,'diagonaldown'
-		end
-	    end
-	end
-	for i in (arr.length-1)..5
-	    for j in 0..(7-arr.length)
-		if diagonalup(i,j,arr)
-		    return i,j,'diagonalup'
-		end
-	    end
-	end
-	return -1,-1,'notfound'
+  def find(arr)
+    if (arr.length > 6)
+      raise PreconditionError, 'Search array too long.'
     end
+    if (arr.empty)
+      raise PreconditionError, 'Search array is empty.'
+    end
+    for i in 0..5
+      for j in 0..(7-arr.length)
+        if horizontal(i,j,arr)
+          return i,j,'horizontal'
+        end
+      end
+    end
+    for i in 0..(6-arr.length)
+      for j in 0..6
+        if vertical(i,j,arr)
+          return i,j,'vertical'
+        end
+      end
+    end
+    for i in 0..(6-arr.length)
+      for j in 0..(7-arr.length)
+        if diagonaldown(i,j,arr)
+          return i,j,'diagonaldown'
+        end
+      end
+    end
+    for i in (arr.length-1)..5
+      for j in 0..(7-arr.length)
+        if diagonalup(i,j,arr)
+          return i,j,'diagonalup'
+        end
+      end
+    end
+    return -1,-1,'notfound'
+  end
 
-    def top(i)
-	for j in 6..0
-	    if @board[i][j] == 0
-		return j
-	    end
-	end
-	return -1
+  def top(i)
+    for j in 6..0
+      if @board[i][j] == 0
+        return j
+      end
     end
+    return -1
+  end
 
-    def hasAdjacent(row,col,piece)
-	fromI = (row == 5) ? 0 : -1
-	toI = (row == 0) ? 0 : 1
-	fromJ = (col == 0) ? 0 : -1
-	toJ = (col == 6) ? 0 : 1
-	for i in fromI..toI
-	    for j in fromJ..toJ
-		if @board[row+i][col+j] == piece
-		    return true
-		end
-	    end
-	end
-	return false
+  def hasAdjacent(row,col,piece)
+    fromI = (row == 5) ? 0 : -1
+    toI = (row == 0) ? 0 : 1
+    fromJ = (col == 0) ? 0 : -1
+    toJ = (col == 6) ? 0 : 1
+    for i in fromI..toI
+      for j in fromJ..toJ
+        if @board[row+i][col+j] == piece
+          return true
+        end
+      end
     end
-    
-    def move
-        raise NotImplementedError, 'Concrete, game specific strategies should implement move.'
-    end
+    return false
+  end
 
-    # Evaluate position based on minimax.
-    # Perhaps we want per-player evaluation tables generated by running the
-    # evaluation function?
-    def evaluate
-    end
-    
-    def win?
-        raise NotImplementedError, 'Concrete, game specific strategies should implement win?.'
-    end
+  def move
+    raise NotImplementedError, 'Concrete, game specific strategies should implement move.'
+  end
+
+  # Evaluate position based on minimax.
+  # Perhaps we want per-player evaluation tables generated by running the
+  # evaluation function?
+  def evaluate
+  end
+
+  def win?
+    raise NotImplementedError, 'Concrete, game specific strategies should implement win?.'
+  end
 end
 
 class OttoEasy < Strategy
-    def move
-	begin 
-	    col = rand(7)
-	    row = top(col)
-	end until row > -1
-	@board[row][col] = 1 + rand(1);
-    end
+  def move
+    begin 
+      col = rand(7)
+      row = top(col)
+    end until row > -1
+    @board[row][col] = 1 + rand(1);
+  end
 
-    def win?
-	p1,a,b = find([2,1,1,2])
-	p2,c,d = find([1,2,2,1])
-	return p1>0 || p2>0
-    end
+  def win?
+    p1,a,b = find([2,1,1,2])
+    p2,c,d = find([1,2,2,1])
+    return p1>0 || p2>0
+  end
 
-    def winner
-	p1,a,b = find([1,2,2,1])
-	if p1>0
-	    return 1
-	end
-	p2,c,d = find([2,1,1,2])
-	if p2>0
-	    return 2
-	end
-	return 0
+  def winner
+    p1,a,b = find([1,2,2,1])
+    if p1>0
+      return 1
     end
+    p2,c,d = find([2,1,1,2])
+    if p2>0
+      return 2
+    end
+    return 0
+  end
 end
 
 class OttoMedium < Strategy
-    def win?
-	p1,a,b = find([2,1,1,2])
-	p2,c,d = find([1,2,2,1])
-	return p1>0 || p2>0
-    end
+  def win?
+    p1,a,b = find([2,1,1,2])
+    p2,c,d = find([1,2,2,1])
+    return p1>0 || p2>0
+  end
 
-    def winner
-	p1,a,b = find([1,2,2,1])
-	if p1>0
-	    return 1
-	end
-	p2,c,d = find([2,1,1,2])
-	if p2>0
-	    return 2
-	end
-	return 0
+  def winner
+    p1,a,b = find([1,2,2,1])
+    if p1>0
+      return 1
     end
+    p2,c,d = find([2,1,1,2])
+    if p2>0
+      return 2
+    end
+    return 0
+  end
 
-    def move
-	for col in 0..6
-	    if (top(col) > -1)
-	        @board[top(col)][col] = 2
-	    end
-	    if winner == 2
-		return
-	    elsif winner == 1
-		@board[top(col)][col] = 1
-	    end
-	end
-	begin 
-	    col = rand(7)
-	    row = top(col)
-	end until row > -1
-	@board[row][col] = 1 + rand(1);
+  def move
+    for col in 0..6
+      if (top(col) > -1)
+        @board[top(col)][col] = 2
+      end
+      if winner == 2
+        return
+      elsif winner == 1
+        @board[top(col)][col] = 1
+      end
     end
+    begin 
+      col = rand(7)
+      row = top(col)
+    end until row > -1
+    @board[row][col] = 1 + rand(1);
+  end
 
 end
 
 
 class C4Easy < Strategy
-    def move
-	begin 
-	    col = rand(6)
-	    row = top(col)
-	end until row > -1
-	@board[row][col] = 2;
-    end
+  def move
+    begin 
+      col = rand(6)
+      row = top(col)
+    end until row > -1
+    @board[row][col] = 2;
+  end
 
-    def win?
-	p1,a,b = find([1,1,1,1])
-	p2,c,d = find([2,2,2,2])
-	return p1>0 || p2>0
-    end
+  def win?
+    p1,a,b = find([1,1,1,1])
+    p2,c,d = find([2,2,2,2])
+    return p1>0 || p2>0
+  end
 
 end
 
 class C4Medium < Strategy
-    def win?
-	p1,a,b = find([1,1,1,1])
-	p2,c,d = find([2,2,2,2])
-	return p1>0 || p2>0
-    end
+  def win?
+    p1,a,b = find([1,1,1,1])
+    p2,c,d = find([2,2,2,2])
+    return p1>0 || p2>0
+  end
 
-    def move
-	for col in 0..6
-	    if (top(col) > -1)
-	        @board[top(col)][col] = 2
-	    end
-	    if win?
-		return
-	    else 
-		@board[top(col)][col] = 1
-		if win?
-		    @board[top(col)][col] = 2
-		    return
-	        end
-	    end
-	end
-	begin 
-	    col = rand(6)
-	    row = top(col)
-	end until row > -1
-	@board[row][col] = 2;
+  def move
+    for col in 0..6
+      if (top(col) > -1)
+        @board[top(col)][col] = 2
+      end
+      if win?
+        return
+      else 
+        @board[top(col)][col] = 1
+        if win?
+          @board[top(col)][col] = 2
+          return
+        end
+      end
     end
+    begin 
+      col = rand(6)
+      row = top(col)
+    end until row > -1
+    @board[row][col] = 2;
+  end
 end
 
 class C4Hard < Strategy
-    def win?
-	p1,a,b = find([1,1,1,1])
-	p2,c,d = find([2,2,2,2])
-	return p1>0 || p2>0
-    end
+  def win?
+    p1,a,b = find([1,1,1,1])
+    p2,c,d = find([2,2,2,2])
+    return p1>0 || p2>0
+  end
 
-    def move
-	for col in 0..6
-	    if (top(col) > -1)
-	        @board[top(col)][col] = 2
-	    end
-	    if win?
-		return
-	    else 
-		@board[top(col)][col] = 1
-		if win?
-		    @board[top(col)][col] = 2
-		    return
-	        end
-	    end
-	end
-	from = rand(6)
-	to = rand(6)
-	for col in from..to
-	    if(top(col) > -1)
-		if(hasAdjacent(top(col),col,2))
-		    @board[top(col)][col] = 2
-		end
-	    end
-	end
-	begin 
-	    col = rand(6)
-	    row = top(col)
-	end until row > -1
-	@board[row][col] = 2;
+  def move
+    for col in 0..6
+      if (top(col) > -1)
+        @board[top(col)][col] = 2
+      end
+      if win?
+        return
+      else 
+        @board[top(col)][col] = 1
+        if win?
+          @board[top(col)][col] = 2
+          return
+        end
+      end
     end
+    from = rand(6)
+    to = rand(6)
+    for col in from..to
+      if(top(col) > -1)
+        if(hasAdjacent(top(col),col,2))
+          @board[top(col)][col] = 2
+        end
+      end
+    end
+    begin 
+      col = rand(6)
+      row = top(col)
+    end until row > -1
+    @board[row][col] = 2;
+  end
 end
 
 # The builder is our view in this case.
@@ -382,37 +382,37 @@ class Controller
       @builder.add_from_file("c4.glade")
       @builder.connect_signals{ |handler| method(handler) }
 
-# Destroying the window will terminate the program
+      # Destroying the window will terminate the program
       window = @builder.get_object("window1")
       window.signal_connect( "destroy" ) { Gtk.main_quit }
 
-# The 'Quit' button will terminate the program
+      # The 'Quit' button will terminate the program
       menu = @builder.get_object("Quit")
       menu.signal_connect( "activate" ) { Gtk.main_quit }
 
-# The 'New' button will start a new game
+      # The 'New' button will start a new game
       menu = @builder.get_object("New")
       menu.signal_connect( "activate" ) { setUpTheBoard }
 
-# The 'Settings' button will open a new window called settings
+      # The 'Settings' button will open a new window called settings
       settings = @builder.get_object("Settings")
       settings.signal_connect( "activate" ) { openSettings() }
 
-# The 'Settings' button will open a new window called settings
+      # The 'Settings' button will open a new window called settings
       about = @builder.get_object("About")
       about.signal_connect( "activate" ) { openAbout() }
 
-# The 'OK' button in Settings will save the settings and close the window
+      # The 'OK' button in Settings will save the settings and close the window
       settingsOK = @builder.get_object("SettingsOK")
       settingsOK.signal_connect( "clicked" ) { saveSettings() }
 
-# The 'Cancel' button in Settings will negate any changes to the settings and close the window
+      # The 'Cancel' button in Settings will negate any changes to the settings and close the window
       settingsCancel = @builder.get_object("SettingsCancel")
       settingsCancel.signal_connect( "clicked" ) { hideSettings() }
 
-# Attach a signal to each button
+      # Attach a signal to each button
       1.upto(Game::HEIGHT*Game::WIDTH) { |i| 
-         @builder.get_object("button" + i.to_s).signal_connect("clicked") {button_clicked(i)};
+        @builder.get_object("button" + i.to_s).signal_connect("clicked") {button_clicked(i)};
       }
 
       @game = Game.new 0
@@ -456,7 +456,7 @@ class Controller
   end
 
   def button_clicked(tileNumber)
-      puts tileNumber
+    puts tileNumber
   end  
 
 
