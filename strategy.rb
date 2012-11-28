@@ -9,6 +9,10 @@ require "./c4"
 # Ideas (might be overkill!!)
 # http://en.wikipedia.org/wiki/Minimax#Minimax_algorithm_with_alternate_moves
 class Strategy < Model
+  ONGOING = 0
+  P1_WIN = 1
+  P2_WIN = 2
+  DRAW = 3
   def initialize(game)
     # We give the stategy access to the entire gamemodel which
     # includes the board and stats on players.
@@ -140,15 +144,15 @@ class OttoStrategy< Strategy
     p1 = find([1,2,2,1])
     p2 = find([2,1,1,2])
     if p1>0 && p2>0
-      return 3
+      return DRAW
     end
     if p1>0
-      return 1
+      return P1_WIN
     end
     if p2>0
-      return 2
+      return P2_WIN
     end
-    return 0
+    return ONGOING
   end
 
   # Pass in 1 if looking for OTTO, returns coordinates for first and last piece
@@ -202,9 +206,6 @@ class C4Strategy < Strategy
     return p1>0 || p2>0
   end
 
-
-  # Pass in 1 for player 1, returns coordinates for first and last piece
-  # Pass in 2 for player 2, returns coordinates for first and last piece
   def winningMove
     a,b,c,d = find([1,1,1,1])
     if a>0
@@ -238,11 +239,10 @@ class C4Strategy < Strategy
   end
 
   def move
-    if @difficulty >= 2
+    if @game.difficulty >= 2
       winner, col = hasWin
       if winner > 0
-        @board[top(col)][col] = 2
-        return
+        return col
       end
     end
     if @difficulty == 3
@@ -253,10 +253,10 @@ class C4Strategy < Strategy
           if(hasAdjacent(top(col),col,2))
             @board[top(col)][col] = 2
             winner, x = hasWin
-            if winner != 1
-              return
-            end
             @board[top(col)][col] = 0
+            if winner != 1
+              return col
+            end
           end
         end
       end
@@ -269,10 +269,9 @@ class C4Strategy < Strategy
         end until row > -1
         @board[row][col] = 2;
         winner, x = hasWin
-        if winner == 1
-          @board[row][col] = 0;
-        else
-          return
+	@board[row][col] = 0;
+        if winner != 1
+          return col
         end
       end  
     end
@@ -280,7 +279,7 @@ class C4Strategy < Strategy
       col = rand(6)
       row = top(col)
     end until row > -1
-    @board[row][col] = 2;
+    return col
   end
 end
 
