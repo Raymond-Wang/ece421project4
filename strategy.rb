@@ -53,45 +53,45 @@ class Strategy < Model
   end
 
   def find(arr)
-    if (arr.length > 6)
+    if (arr.length > GAME::HEIGHT)
       raise PreconditionError, 'Search array too long.'
     end
     if (arr.empty)
       raise PreconditionError, 'Search array is empty.'
     end
-    for i in 0..5
-      for j in 0..(7-arr.length)
+    for i in 0..(GAME::HEIGHT-1)
+      for j in 0..(GAME::WIDTH-arr.length)
         if horizontal(i,j,arr)
-          return i,j,'horizontal'
+          return i,j,i,j+4
         end
       end
     end
-    for i in 0..(6-arr.length)
-      for j in 0..6
+    for i in 0..(GAME::HEIGHT-arr.length)
+      for j in 0..(GAME::WIDTH-1)
         if vertical(i,j,arr)
-          return i,j,'vertical'
+          return i,j, i+4,j
         end
       end
     end
-    for i in 0..(6-arr.length)
-      for j in 0..(7-arr.length)
+    for i in 0..(GAME::HEIGHT-arr.length)
+      for j in 0..(GAME::WIDTH-arr.length)
         if diagonaldown(i,j,arr)
-          return i,j,'diagonaldown'
+          return i,j,i+4,j+4
         end
       end
     end
-    for i in (arr.length-1)..5
-      for j in 0..(7-arr.length)
+    for i in (arr.length-1)..(GAME::HEIGHT-1)
+      for j in 0..(GAME::WIDTH-arr.length)
         if diagonalup(i,j,arr)
-          return i,j,'diagonalup'
+          return i,j,i-4,j+4
         end
       end
     end
-    return -1,-1,'notfound'
+    return -1,-1,-1,-1
   end
 
   def top(i)
-    for j in 6..0
+    for j in GAME::HEIGHT..0
       if @board[i][j] == 0
         return j
       end
@@ -100,10 +100,10 @@ class Strategy < Model
   end
 
   def hasAdjacent(row,col,piece)
-    fromI = (row == 5) ? 0 : -1
+    fromI = (row == (GAME::HEIGHT-1)) ? 0 : -1
     toI = (row == 0) ? 0 : 1
     fromJ = (col == 0) ? 0 : -1
-    toJ = (col == 6) ? 0 : 1
+    toJ = (col == (GAME::WIDTH-1)) ? 0 : 1
     for i in fromI..toI
       for j in fromJ..toJ
         if @board[row+i][col+j] == piece
@@ -129,51 +129,50 @@ class Strategy < Model
   end
 end
 
-class OttoEasy < Strategy
-  def move
-    begin 
-      col = rand(7)
-      row = top(col)
-    end until row > -1
-    @board[row][col] = 1 + rand(1);
-  end
-
+class OttoStrategy< Strategy
   def win?
-    p1,a,b = find([2,1,1,2])
-    p2,c,d = find([1,2,2,1])
+    p1 = find([2,1,1,2])
+    p2 = find([1,2,2,1])
     return p1>0 || p2>0
   end
 
   def winner
-    p1,a,b = find([1,2,2,1])
+    p1 = find([1,2,2,1])
+    p2 = find([2,1,1,2])
+    if p1>0 && p2>0
+      return 3
+    end
     if p1>0
       return 1
     end
-    p2,c,d = find([2,1,1,2])
     if p2>0
       return 2
     end
     return 0
   end
-end
 
-class OttoMedium < Strategy
-  def win?
-    p1,a,b = find([2,1,1,2])
-    p2,c,d = find([1,2,2,1])
-    return p1>0 || p2>0
-  end
-
-  def winner
-    p1,a,b = find([1,2,2,1])
-    if p1>0
-      return 1
+  # Pass in 1 if looking for OTTO, returns coordinates for first and last piece
+  # Pass in 2 if looking for TOOT, returns coordinates for first and last piece
+  # Pass in 3 if looking for both, returns coordinates for first and last piece for both OTTO and TOOT
+  def winningMove(winner)
+    a,b,c,d = find([1,2,2,1])
+    e,f,g,h = find([2,1,1,2])
+    if winner == 1
+      if a>0
+        return a,b,c,d
+      end
     end
-    p2,c,d = find([2,1,1,2])
-    if p2>0
-      return 2
+    if winner == 2
+      if e>0
+        return e,f,g,h
+      end
     end
-    return 0
+    if winner == 3
+      if a>0&&e>0
+        return a,b,c,d,e,f,g,h
+      end
+    end
+    return -1,-1,-1,-1
   end
 
   def move
@@ -196,82 +195,55 @@ class OttoMedium < Strategy
 
 end
 
-
-class C4Easy < Strategy
-  def move
-    begin 
-      col = rand(6)
-      row = top(col)
-    end until row > -1
-    @board[row][col] = 2;
-  end
-
+class C4Strategy < Strategy
   def win?
-    p1,a,b = find([1,1,1,1])
-    p2,c,d = find([2,2,2,2])
+    p1 = find([1,1,1,1])
+    p2 = find([2,2,2,2])
     return p1>0 || p2>0
   end
 
-end
 
-class C4Medium < Strategy
-  def win?
-    p1,a,b = find([1,1,1,1])
-    p2,c,d = find([2,2,2,2])
-    return p1>0 || p2>0
-  end
-
-  def move
-    for col in 0..6
-      if (top(col) > -1)
-        @board[top(col)][col] = 2
+  # Pass in 1 for player 1, returns coordinates for first and last piece
+  # Pass in 2 for player 2, returns coordinates for first and last piece
+  def winningMove
+    a,b,c,d = find([1,1,1,1])
+    if a>0
+      return a,b,c,d
+    else
+      a,b,c,d = find([2,2,2,2])
+      if a>0
+        return a,b,c,d
       end
-      if win?
-        return
-      else 
-        @board[top(col)][col] = 1
-        if win?
+    end
+    return -1,-1,-1,-1
+  end
+
+  def move
+    if @difficulty >= 2
+      for col in 0..GAME::HEIGHT
+        if (top(col) > -1)
           @board[top(col)][col] = 2
+        end
+        if win?
           return
+        else 
+          @board[top(col)][col] = 1
+          if win?
+            @board[top(col)][col] = 2
+            return
+          end
         end
       end
     end
-    begin 
-      col = rand(6)
-      row = top(col)
-    end until row > -1
-    @board[row][col] = 2;
-  end
-end
-
-class C4Hard < Strategy
-  def win?
-    p1,a,b = find([1,1,1,1])
-    p2,c,d = find([2,2,2,2])
-    return p1>0 || p2>0
-  end
-
-  def move
-    for col in 0..6
-      if (top(col) > -1)
-        @board[top(col)][col] = 2
-      end
-      if win?
-        return
-      else 
-        @board[top(col)][col] = 1
-        if win?
-          @board[top(col)][col] = 2
-          return
-        end
-      end
-    end
-    from = rand(6)
-    to = rand(6)
-    for col in from..to
-      if(top(col) > -1)
-        if(hasAdjacent(top(col),col,2))
-          @board[top(col)][col] = 2
+    if @difficulty == 3
+      from = rand(6)
+      to = rand(6)
+      for col in from..to
+        if(top(col) > -1)
+          if(hasAdjacent(top(col),col,2))
+            @board[top(col)][col] = 2
+	    return
+          end
         end
       end
     end
