@@ -15,6 +15,8 @@ class Game
     HEIGHT = 6
     WIDTH = 7
     # Row 0 is at the top, Col 0 is on the left
+    # In Connect 4, '1' is player piece, '2' is computer piece
+    # In OTTO TOOT, '1' is O, '2' is T, and computer plays as TOOT
     
     def initialize(dif, players=[], game=GAME_C4)
         if not(dif.respond_to? :between? and dif.between?(MIN_DIFFICULTY,MAX_DIFFICULTY))
@@ -51,9 +53,9 @@ class Game
     # we don't yet require a factory abstraction
     def initStrategy
         if @game == GAME_C4 
-            @strategy = C4Strategy.new self
+            @strategy = C4Easy.new self
         elsif @game == GAME_OTTO
-            @strategy = OttoStrategy.new self
+            @strategy = OttoEasy.new self
         end
     end
 
@@ -215,13 +217,78 @@ class Strategy
     end
 end
 
-class OttoStrategy < Strategy
+class OttoEasy < Strategy
+    def move
+	begin 
+	    col = rand(7)
+	    row = top(col)
+	end until row > -1
+	@board[row][col] = 1 + rand(1);
+    end
+
+    def win?
+	p1,a,b = find([2,1,1,2])
+	p2,c,d = find([1,2,2,1])
+	return p1>0 || p2>0
+    end
+
+    def winner
+	p1,a,b = find([1,2,2,1])
+	if p1>0
+	    return 1
+	end
+	p2,c,d = find([2,1,1,2])
+	if p2>0
+	    return 2
+	end
+	return 0
+    end
 end
+
+class OttoMedium < Strategy
+    def win?
+	p1,a,b = find([2,1,1,2])
+	p2,c,d = find([1,2,2,1])
+	return p1>0 || p2>0
+    end
+
+    def winner
+	p1,a,b = find([1,2,2,1])
+	if p1>0
+	    return 1
+	end
+	p2,c,d = find([2,1,1,2])
+	if p2>0
+	    return 2
+	end
+	return 0
+    end
+
+    def move
+	for col in 0..6
+	    if (top(col) > -1)
+	        @board[top(col)][col] = 2
+	    end
+	    if winner == 2
+		return
+	    elsif winner == 1
+		@board[top(col)][col] = 1
+	    end
+	end
+	begin 
+	    col = rand(7)
+	    row = top(col)
+	end until row > -1
+	@board[row][col] = 1 + rand(1);
+    end
+
+end
+
 
 class C4Easy < Strategy
     def move
 	begin 
-	    col = rand(7)
+	    col = rand(6)
 	    row = top(col)
 	end until row > -1
 	@board[row][col] = 2;
@@ -258,7 +325,7 @@ class C4Medium < Strategy
 	    end
 	end
 	begin 
-	    col = rand(7)
+	    col = rand(6)
 	    row = top(col)
 	end until row > -1
 	@board[row][col] = 2;
@@ -287,8 +354,8 @@ class C4Hard < Strategy
 	        end
 	    end
 	end
-	from = rand(7)
-	to = rand(7)
+	from = rand(6)
+	to = rand(6)
 	for col in from..to
 	    if(top(col) > -1)
 		if(hasAdjacent(top(col),col,2))
@@ -297,7 +364,7 @@ class C4Hard < Strategy
 	    end
 	end
 	begin 
-	    col = rand(7)
+	    col = rand(6)
 	    row = top(col)
 	end until row > -1
 	@board[row][col] = 2;
