@@ -100,6 +100,89 @@ class Strategy
         # Strategy might be player quantity dependent for example
         @game = game
     end
+
+    def horizontal(i,j,arr)
+	for k in 0..(arr.length-1)
+	    if @board[i][j+k] != arr[k]
+		return false
+	    end
+	end
+	return true
+    end
+
+    def vertical(i,j,arr)
+	for k in 0..(arr.length-1)
+	    if @board[i+k][j] != arr[k]
+		return false
+	    end
+	end
+	return true
+    end
+
+    def diagonaldown(i,j,arr)
+	for k in 0..(arr.length-1)
+	    if @board[i+k][j+k] != arr[k]
+		return false
+	    end
+	end
+	return true
+    end
+
+    def diagonalup(i,j,arr)
+	for k in 0..(arr.length-1)
+	    if @board[i-k][j+k] != arr[k]
+		return false
+	    end
+	end
+	return true
+    end
+
+    def find(arr)
+	if (arr.length > 6)
+	    raise PreconditionError, 'Search array too long.'
+	end
+	if (arr.empty)
+	    raise PreconditionError, 'Search array is empty.'
+	end
+	for i in 0..5
+	    for j in 0..(7-arr.length)
+		if horizontal(i,j,arr)
+		    return i,j,'horizontal'
+		end
+	    end
+	end
+	for i in 0..(6-arr.length)
+	    for j in 0..6
+		if vertical(i,j,arr)
+		    return i,j,'vertical'
+		end
+	    end
+	end
+	for i in 0..(6-arr.length)
+	    for j in 0..(7-arr.length)
+		if diagonaldown(i,j,arr)
+		    return i,j,'diagonaldown'
+		end
+	    end
+	end
+	for i in (arr.length-1)..5
+	    for j in 0..(7-arr.length)
+		if diagonalup(i,j,arr)
+		    return i,j,'diagonalup'
+		end
+	    end
+	end
+	return -1,-1,'notfound'
+    end
+
+    def top(i)
+	for j in 6..0
+	    if @board[i][j] == 0
+		return j
+	    end
+	end
+	return -1
+    end
     
     def move
         raise NotImplementedError, 'Concrete, game specific strategies should implement move.'
@@ -119,7 +202,81 @@ end
 class OttoStrategy < Strategy
 end
 
-class C4Strategy < Strategy
+class C4Easy < Strategy
+    def move
+	begin 
+	    col = rand(7)
+	    row = top(col)
+	end until row > -1
+	@board[row][col] = 2;
+    end
+
+    def win?
+	p1,a,b = find([1,1,1,1])
+	p2,c,d = find([2,2,2,2])
+	return p1>0 || p2>0
+    end
+
+end
+
+class C4Medium < Strategy
+    def win?
+	p1,a,b = find([1,1,1,1])
+	p2,c,d = find([2,2,2,2])
+	return p1>0 || p2>0
+    end
+
+    def move
+	for col in 0..6
+	    if (top(col) > -1)
+	        @board[top(col)][col] = 2
+	    end
+	    if win?
+		return
+	    else 
+		@board[top(col)][col] = 1
+		if win?
+		    @board[top(col)][col] = 2
+		    return
+	        end
+	    end
+	end
+	begin 
+	    col = rand(7)
+	    row = top(col)
+	end until row > -1
+	@board[row][col] = 2;
+    end
+end
+
+class C4Hard < Strategy
+    def win?
+	p1,a,b = find([1,1,1,1])
+	p2,c,d = find([2,2,2,2])
+	return p1>0 || p2>0
+    end
+
+    def move
+	for col in 0..6
+	    if (top(col) > -1)
+	        @board[top(col)][col] = 2
+	    end
+	    if win?
+		return
+	    else 
+		@board[top(col)][col] = 1
+		if win?
+		    @board[top(col)][col] = 2
+		    return
+	        end
+	    end
+	end
+	begin 
+	    col = rand(7)
+	    row = top(col)
+	end until row > -1
+	@board[row][col] = 2;
+    end
 end
 
 # The builder is our view in this case.
