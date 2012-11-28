@@ -3,9 +3,8 @@ require 'rubygems'
 require 'gtk2'
 require "observer"
 
-class PreconditionError < StandardError; end
-class PostconditionError < StandardError; end
-class InvariantError < StandardError; end
+require "./error"
+require "./strategy"
 
 class Model
   include Observable
@@ -23,7 +22,7 @@ class Game < Model
   HEIGHT = 6
   WIDTH = 7
 
-  attr_accessor :game, :difficulty, :currentPlayer
+  attr_accessor :game, :difficulty, :currentPlayer, :board
   attr_reader :players
 
   # Row 0 is at the top, Col 0 is on the left
@@ -97,23 +96,52 @@ class Game < Model
     @strategy.move
   end
 
-  # Check if the row has space.
+  # col is the 0 indexed column
   def check_col(col)
-    col.step(HEIGHT*WIDTH-1, WIDTH).any? { |i| 
-      r,c = indices(i)
-      @board[r][c] == nil
+    (0...HEIGHT).each { |r|
+      if @board[r][col] == nil
+        return true
+      end
     }
+    false
   end
 
-  # Col is 1 indexed.
+  # Col is 0 indexed
   def place_tile(col)
+    if not col.between?(0,WIDTH-1)
+      raise PreconditionError, "Column outside of range."
+    end
     return false unless check_col(col)
-    r,c = next_slot(col)
+    r,c = next_tile(col)
+    @board[r][c] = current_piece
     changed(true)
     # Provide 1 indexed values externally.
-    notify_observers U_BOARD, r+1, c+1
+    notify_observers U_BOARD, r, c, @board[r][c]
     next_turn
     true
+  end
+
+  def reset
+    @turn = 0
+    @currentPlayer = 0
+    (0...HEIGHT).each do |r|
+      (0...WIDTH).each do |c|
+        @board[r][c] = nil
+        changed(true)
+        notify_observers U_BOARD, r, c, @board[r][c]
+      end
+    end
+  end
+
+
+  def get_tile(r,c) 
+    if not r.between?(1,HEIGHT)
+      raise PreconditionError, "Row outside of range."
+    end
+
+    if not c.between?(1,WIDTH)
+      raise PreconditionError, "Col outside of range."
+    end
   end
 
   def next_turn
@@ -121,19 +149,27 @@ class Game < Model
     @currentPlayer = (@currentPlayer + 1) % @players.length
   end
 
-  def current_piece()
+  def current_piece
     # Happens to work for now.
     @currentPlayer + 1
   end
 
-  def next_slot(col)
-    ((HEIGHT*WIDTH)-(col+1)).step(0,-WIDTH) { |i|
-      r, c = indices(i)
-      if @board[r][c] == nil
-        return r,c
+  # col should be 0 indexed
+  # TODO private
+  def next_tile(col)
+    result = nil
+    (HEIGHT-1).downto(0) { |i|
+      if @board[i][col] == nil
+        result = [i,col]
+        break
       end
     }
-    nil
+    if result != nil 
+      r, c = result
+      if not r.between?(0,HEIGHT-1) then raise PostconditionError, "Row outside of range." end
+      if not c.between?(0,WIDTH-1) then raise PostconditionError, "Col outside of range." end
+    end
+    result
   end
 
   # Returns 0 indexed row and column for element number i (if we start at
@@ -161,289 +197,6 @@ class Move < Model
   attr_accessor :x, :y
   def initialize(x,y)
     @x, @y = x, y
-  end
-end
-
-# NOTE Strategies can have their own instance variables to help manage things.
-# For example a hierarchical tree or whatever it takes. It has access
-# to the full game state via game.
-# The strategy is responsible for two, somewhat distinct goals:
-# 1. Check if the current game state is a victory.
-#
-# Ideas (might be overkill!!)
-# http://en.wikipedia.org/wiki/Minimax#Minimax_algorithm_with_alternate_moves
-class Strategy < Model
-  def initialize(game)
-    # We give the stategy access to the entire gamemodel which
-    # includes the board and stats on players.
-    # Strategy might be player quantity dependent for example
-    @game = game
-  end
-
-  def horizontal(i,j,arr)
-    for k in 0..(arr.length-1)
-      if @board[i][j+k] != arr[k]
-        return false
-      end
-    end
-    return true
-  end
-
-  def vertical(i,j,arr)
-    for k in 0..(arr.length-1)
-      if @board[i+k][j] != arr[k]
-        return false
-      end
-    end
-    return true
-  end
-
-  def diagonaldown(i,j,arr)
-    for k in 0..(arr.length-1)
-      if @board[i+k][j+k] != arr[k]
-        return false
-      end
-    end
-    return true
-  end
-
-  def diagonalup(i,j,arr)
-    for k in 0..(arr.length-1)
-      if @board[i-k][j+k] != arr[k]
-        return false
-      end
-    end
-    return true
-  end
-
-  def find(arr)
-    if (arr.length > 6)
-      raise PreconditionError, 'Search array too long.'
-    end
-    if (arr.empty)
-      raise PreconditionError, 'Search array is empty.'
-    end
-    for i in 0..5
-      for j in 0..(7-arr.length)
-        if horizontal(i,j,arr)
-          return i,j,'horizontal'
-        end
-      end
-    end
-    for i in 0..(6-arr.length)
-      for j in 0..6
-        if vertical(i,j,arr)
-          return i,j,'vertical'
-        end
-      end
-    end
-    for i in 0..(6-arr.length)
-      for j in 0..(7-arr.length)
-        if diagonaldown(i,j,arr)
-          return i,j,'diagonaldown'
-        end
-      end
-    end
-    for i in (arr.length-1)..5
-      for j in 0..(7-arr.length)
-        if diagonalup(i,j,arr)
-          return i,j,'diagonalup'
-        end
-      end
-    end
-    return -1,-1,'notfound'
-  end
-
-  def top(i)
-    for j in 6..0
-      if @board[i][j] == 0
-        return j
-      end
-    end
-    return -1
-  end
-
-  def hasAdjacent(row,col,piece)
-    fromI = (row == 5) ? 0 : -1
-    toI = (row == 0) ? 0 : 1
-    fromJ = (col == 0) ? 0 : -1
-    toJ = (col == 6) ? 0 : 1
-    for i in fromI..toI
-      for j in fromJ..toJ
-        if @board[row+i][col+j] == piece
-          return true
-        end
-      end
-    end
-    return false
-  end
-
-  def move
-    raise NotImplementedError, 'Concrete, game specific strategies should implement move.'
-  end
-
-  # Evaluate position based on minimax.
-  # Perhaps we want per-player evaluation tables generated by running the
-  # evaluation function?
-  def evaluate
-  end
-
-  def win?
-    raise NotImplementedError, 'Concrete, game specific strategies should implement win?.'
-  end
-end
-
-class OttoEasy < Strategy
-  def move
-    begin 
-      col = rand(7)
-      row = top(col)
-    end until row > -1
-    @board[row][col] = 1 + rand(1);
-  end
-
-  def win?
-    p1,a,b = find([2,1,1,2])
-    p2,c,d = find([1,2,2,1])
-    return p1>0 || p2>0
-  end
-
-  def winner
-    p1,a,b = find([1,2,2,1])
-    if p1>0
-      return 1
-    end
-    p2,c,d = find([2,1,1,2])
-    if p2>0
-      return 2
-    end
-    return 0
-  end
-end
-
-class OttoMedium < Strategy
-  def win?
-    p1,a,b = find([2,1,1,2])
-    p2,c,d = find([1,2,2,1])
-    return p1>0 || p2>0
-  end
-
-  def winner
-    p1,a,b = find([1,2,2,1])
-    if p1>0
-      return 1
-    end
-    p2,c,d = find([2,1,1,2])
-    if p2>0
-      return 2
-    end
-    return 0
-  end
-
-  def move
-    for col in 0..6
-      if (top(col) > -1)
-        @board[top(col)][col] = 2
-      end
-      if winner == 2
-        return
-      elsif winner == 1
-        @board[top(col)][col] = 1
-      end
-    end
-    begin 
-      col = rand(7)
-      row = top(col)
-    end until row > -1
-    @board[row][col] = 1 + rand(1);
-  end
-
-end
-
-
-class C4Easy < Strategy
-  def move
-    begin 
-      col = rand(6)
-      row = top(col)
-    end until row > -1
-    @board[row][col] = 2;
-  end
-
-  def win?
-    p1,a,b = find([1,1,1,1])
-    p2,c,d = find([2,2,2,2])
-    return p1>0 || p2>0
-  end
-
-end
-
-class C4Medium < Strategy
-  def win?
-    p1,a,b = find([1,1,1,1])
-    p2,c,d = find([2,2,2,2])
-    return p1>0 || p2>0
-  end
-
-  def move
-    for col in 0..6
-      if (top(col) > -1)
-        @board[top(col)][col] = 2
-      end
-      if win?
-        return
-      else 
-        @board[top(col)][col] = 1
-        if win?
-          @board[top(col)][col] = 2
-          return
-        end
-      end
-    end
-    begin 
-      col = rand(6)
-      row = top(col)
-    end until row > -1
-    @board[row][col] = 2;
-  end
-end
-
-class C4Hard < Strategy
-  def win?
-    p1,a,b = find([1,1,1,1])
-    p2,c,d = find([2,2,2,2])
-    return p1>0 || p2>0
-  end
-
-  def move
-    for col in 0..6
-      if (top(col) > -1)
-        @board[top(col)][col] = 2
-      end
-      if win?
-        return
-      else 
-        @board[top(col)][col] = 1
-        if win?
-          @board[top(col)][col] = 2
-          return
-        end
-      end
-    end
-    from = rand(6)
-    to = rand(6)
-    for col in from..to
-      if(top(col) > -1)
-        if(hasAdjacent(top(col),col,2))
-          @board[top(col)][col] = 2
-        end
-      end
-    end
-    begin 
-      col = rand(6)
-      row = top(col)
-    end until row > -1
-    @board[row][col] = 2;
   end
 end
 
@@ -510,14 +263,34 @@ class Controller
     case what
     when Game::U_BOARD
       update_board *args
+    when Game::U_RESET
+      reset_board
     end
   end
 
-  def update_board(row,col)
-    i = col + ((row-1)*Game::WIDTH) 
-    p "Update board called"
-    p "image#{i}"
-    @builder.get_object("image#{i}").pixbuf = Gdk::Pixbuf.new 'red.png'
+  def update_board(row,col,piece)
+    i = col + ((row)*Game::WIDTH) + 1
+    @builder.get_object("image#{i}").pixbuf = Gdk::Pixbuf.new(image_for_piece(piece))
+  end
+
+  def image_for_piece(piece)
+    return 'frame.png' unless not piece.nil?
+    case @game.game
+    when Game::GAME_OTTO
+      case piece
+      when 1
+        'o.png'
+      when 2
+        't.png'
+      end
+    when Game::GAME_C4
+      case piece
+      when 1
+        'black.png'
+      when 2
+        'red.png'
+      end
+    end
   end
 
 
@@ -533,8 +306,13 @@ class Controller
   def saveSettings
     gameCombo = @builder.get_object("GameCombo")
     difficultyCombo = @builder.get_object("DifficultyCombo")
-    @game = gameCombo.active
-    @difficulty = difficultyCombo.active
+    game = gameCombo.active
+    dif = difficultyCombo.active
+    if game != @game.game or dif != @game.difficulty
+      @game.game = game
+      @game.difficulty = dif
+      @game.reset
+    end
     hideSettings()
   end
 
@@ -553,7 +331,7 @@ class Controller
   end
 
   def button_clicked(col)
-    @game.place_tile(col)
+    @game.place_tile(col-1)
   end  
 
   def win?
@@ -562,7 +340,6 @@ class Controller
 
 
   def threes(a,b,c)
-
   end
 
 
