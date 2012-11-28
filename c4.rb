@@ -1,37 +1,39 @@
 #!/usr/bin/env ruby
 require 'rubygems'
 require 'gtk2'
+require "observer"
 
 class PreconditionError < StandardError; end
 class PostconditionError < StandardError; end
 class InvariantError < StandardError; end
 
-class Game
-  GAME_C4 = 'C4'
-  GAME_OTTO = 'OTTO'
+class Model
+  include Observable
+end
+
+class Game < Model
+  # Update types for observers
+  U_BOARD = 0
+
+  GAME_C4 = 0
+  GAME_OTTO = 1
   GAMES = [GAME_OTTO,GAME_C4]
-  MIN_DIFFICULTY = 0
+  MIN_DIFFICULTY = 1
   MAX_DIFFICULTY = 3
   HEIGHT = 6
   WIDTH = 7
+
+  attr_accessor :game, :difficulty, :currentPlayer
+  attr_reader :players
+
   # Row 0 is at the top, Col 0 is on the left
   # In Connect 4, '1' is player piece, '2' is computer piece
   # In OTTO TOOT, '1' is O, '2' is T, and computer plays as TOOT
 
-  def initialize(dif, players=[], game=GAME_C4)
-    if not(dif.respond_to? :between? and dif.between?(MIN_DIFFICULTY,MAX_DIFFICULTY))
+  def initialize(dif=1, players=[], game=GAME_C4)
+    if not(dif.respond_to?(:between?) and dif.between?(MIN_DIFFICULTY,MAX_DIFFICULTY))
       raise PreconditionError, 'Invalid difficulty.'
     end
-    if not(players.respond_to? :each)
-      raise PreconditionError, 'Players should be an enumerable.'
-    else
-      players.each { |p| 
-        if not player.kind_of? Player 
-          raise PreconditionError, 'Players enumerable should only contain player objects.'
-        end
-      }
-    end
-    print game
     if not(GAMES.include? game)
       raise PreconditionError, "Strategy should be one of #{GAMES.inspect}"
     end
@@ -39,8 +41,10 @@ class Game
     # Array of all players. Can be modified dynamically as players leave
     # and enter.
     @players = players 
+
     # Index of the current player.
     @currentPlayer = 0
+    @turn = 1
     @difficulty = dif
     @game = game 
     @board = Array.new(HEIGHT) { Array.new(WIDTH) } 
@@ -48,14 +52,39 @@ class Game
     # Initialize our strategy
     initStrategy
   end
+  
+  def players=(players)
+    if not(players.respond_to? :each)
+      raise PreconditionError, 'Players should be an enumerable.'
+    else
+      players.each { |p| 
+        if not p.kind_of? Player 
+          raise PreconditionError, 'Players enumerable should only contain player objects.'
+        end
+      }
+    end
+    @players = players
+  end
 
   # Somewhat of a factory method for the strategy but 
   # we don't yet require a factory abstraction
   def initStrategy
     if @game == GAME_C4 
-      @strategy = C4Easy.new self
+      if @difficulty == 1
+        @strategy = C4Easy.new self
+      elsif @difficulty == 2
+        @strategy = C4Medium.new self
+      elsif @difficulty == 3
+        @strategy = C4Hard.new self
+      end
     elsif @game == GAME_OTTO
-      @strategy = OttoEasy.new self
+      if @difficulty == 1
+        @strategy = OttoEasy.new self
+      elsif @difficulty == 2
+        @strategy = OttoMedium.new self
+      elsif @difficulty == 3
+        @strategy = OttoHard.new self
+      end
     end
   end
 
@@ -67,11 +96,58 @@ class Game
   def move
     @strategy.move
   end
+
+  # Check if the row has space.
+  def check_col(col)
+    col.step(HEIGHT*WIDTH-1, WIDTH).any? { |i| 
+      r,c = indices(i)
+      @board[r][c] == nil
+    }
+  end
+
+  # Col is 1 indexed.
+  def place_tile(col)
+    return false unless check_col(col)
+    r,c = next_slot(col)
+    changed(true)
+    # Provide 1 indexed values externally.
+    notify_observers U_BOARD, r+1, c+1
+    next_turn
+    true
+  end
+
+  def next_turn
+    @turn = @turn + 1
+    @currentPlayer = (@currentPlayer + 1) % @players.length
+  end
+
+  def current_piece()
+    # Happens to work for now.
+    @currentPlayer + 1
+  end
+
+  def next_slot(col)
+    ((HEIGHT*WIDTH)-(col+1)).step(0,-WIDTH) { |i|
+      r, c = indices(i)
+      if @board[r][c] == nil
+        return r,c
+      end
+    }
+    nil
+  end
+
+  # Returns 0 indexed row and column for element number i (if we start at
+  # the top left and increase by one towards the bottom right).
+  def indices(i)
+    [(i/WIDTH),(i-1) % (WIDTH)]
+  end
 end
 
-class Player
+class Player < Model
   TYPE_AI = 'AI'
   TYPE_HUMAN = 'HUMAN'
+
+  attr_accessor :type, :name
 
   def initialize(name,type)
     @name, @type = name, type
@@ -81,7 +157,7 @@ class Player
   end
 end
 
-class Move
+class Move < Model
   attr_accessor :x, :y
   def initialize(x,y)
     @x, @y = x, y
@@ -96,7 +172,7 @@ end
 #
 # Ideas (might be overkill!!)
 # http://en.wikipedia.org/wiki/Minimax#Minimax_algorithm_with_alternate_moves
-class Strategy
+class Strategy < Model
   def initialize(game)
     # We give the stategy access to the entire gamemodel which
     # includes the board and stats on players.
@@ -411,11 +487,16 @@ class Controller
       settingsCancel.signal_connect( "clicked" ) { hideSettings() }
 
       # Attach a signal to each button
-      1.upto(Game::HEIGHT*Game::WIDTH) { |i| 
+      1.upto(Game::WIDTH) { |i| 
         @builder.get_object("button" + i.to_s).signal_connect("clicked") {button_clicked(i)};
       }
 
-      @game = Game.new 0
+      @game = Game.new 1
+
+      @game.players = [Player.new('jacob', Player::TYPE_AI), Player.new('raymond', Player::TYPE_AI)]
+
+      # Register observer
+      @game.add_observer self, :update
 
       setUpTheBoard
 
@@ -424,13 +505,29 @@ class Controller
     end
   end
 
+  def update(what,*args)
+    p "Updating"
+    case what
+    when Game::U_BOARD
+      update_board *args
+    end
+  end
+
+  def update_board(row,col)
+    i = col + ((row-1)*Game::WIDTH) 
+    p "Update board called"
+    p "image#{i}"
+    @builder.get_object("image#{i}").pixbuf = Gdk::Pixbuf.new 'red.png'
+  end
+
+
   def openSettings
     dialog = @builder.get_object("dialog1")
     dialog.show()
     gameCombo = @builder.get_object("GameCombo")
     difficultyCombo = @builder.get_object("DifficultyCombo")
-    gameCombo.active=@game
-    difficultyCombo.active=@difficulty
+    gameCombo.active=@game.game
+    difficultyCombo.active=@game.difficulty
   end
 
   def saveSettings
@@ -455,10 +552,9 @@ class Controller
 
   end
 
-  def button_clicked(tileNumber)
-    puts tileNumber
+  def button_clicked(col)
+    @game.place_tile(col)
   end  
-
 
   def win?
 
