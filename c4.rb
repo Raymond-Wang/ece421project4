@@ -14,6 +14,7 @@ class Game
     MAX_DIFFICULTY = 3
     HEIGHT = 6
     WIDTH = 7
+    # Row 0 is at the top, Col 0 is on the left
     
     def initialize(dif, players=[], game=GAME_C4)
         if not(dif.respond_to? :between? and dif.between?(MIN_DIFFICULTY,MAX_DIFFICULTY))
@@ -183,6 +184,21 @@ class Strategy
 	end
 	return -1
     end
+
+    def hasAdjacent(row,col,piece)
+	fromI = (row == 5) ? 0 : -1
+	toI = (row == 0) ? 0 : 1
+	fromJ = (col == 0) ? 0 : -1
+	toJ = (col == 6) ? 0 : 1
+	for i in fromI..toI
+	    for j in fromJ..toJ
+		if @board[row+i][col+j] == piece
+		    return true
+		end
+	    end
+	end
+	return false
+    end
     
     def move
         raise NotImplementedError, 'Concrete, game specific strategies should implement move.'
@@ -269,6 +285,15 @@ class C4Hard < Strategy
 		    @board[top(col)][col] = 2
 		    return
 	        end
+	    end
+	end
+	from = rand(7)
+	to = rand(7)
+	for col in from..to
+	    if(top(col) > -1)
+		if(hasAdjacent(top(col),col,2))
+		    @board[top(col)][col] = 2
+		end
 	    end
 	end
 	begin 
