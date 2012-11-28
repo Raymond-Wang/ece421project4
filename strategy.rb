@@ -218,21 +218,31 @@ class C4Strategy < Strategy
     return -1,-1,-1,-1
   end
 
-  def move
-    if @difficulty >= 2
+  def hasWin
       for col in 0..GAME::HEIGHT
         if (top(col) > -1)
           @board[top(col)][col] = 2
         end
         if win?
-          return
+          @board[top(col)][col] = 0
+          return 2, col
         else 
           @board[top(col)][col] = 1
           if win?
-            @board[top(col)][col] = 2
-            return
+            @board[top(col)][col] = 0
+            return 1, col
           end
         end
+      end
+      return 0, 0
+  end
+
+  def move
+    if @difficulty >= 2
+      winner, col = hasWin
+      if winner > 0
+        @board[top(col)][col] = 2
+        return
       end
     end
     if @difficulty == 3
@@ -242,10 +252,29 @@ class C4Strategy < Strategy
         if(top(col) > -1)
           if(hasAdjacent(top(col),col,2))
             @board[top(col)][col] = 2
-	    return
+            winner, x = hasWin
+            if winner != 1
+              return
+            end
+            @board[top(col)][col] = 0
           end
         end
       end
+    end
+    if @difficulty >= 2
+      for i in 1..10
+        begin 
+          col = rand(6)
+          row = top(col)
+        end until row > -1
+        @board[row][col] = 2;
+        winner, x = hasWin
+        if winner == 1
+          @board[row][col] = 0;
+        else
+          return
+        end
+      end  
     end
     begin 
       col = rand(6)
@@ -254,4 +283,5 @@ class C4Strategy < Strategy
     @board[row][col] = 2;
   end
 end
+
 
