@@ -15,6 +15,7 @@ class Game < Model
   U_BOARD = 0
   U_TURN = 1
   U_PLAYER = 2
+  U_RESET = 3
 
   GAME_C4 = 0
   GAME_OTTO = 1
@@ -136,12 +137,17 @@ class Game < Model
 
   def next_turn
     @turn = @turn + 1
-    changed(true)
-    notify_observers U_TURN, @turn
 
     @currentPlayer = (@currentPlayer + 1) % @players.length
     changed(true)
     notify_observers U_PLAYER, @currentPlayer, @players[@currentPlayer]
+  end
+
+  def turn=(val)
+    p "turn changed"
+    @turn = val
+    changed(true)
+    notify_observers U_TURN, @turn
   end
 
   def current_piece
@@ -259,13 +265,32 @@ class Controller
     when Game::U_BOARD
       update_board *args
     when Game::U_RESET
-      reset_board
+      reset_board *args
+    when Game::U_PLAYER
+      update_player *args
+    when Game::U_TURN
+      update_turn *args
     end
   end
 
   def update_board(row,col,piece)
     i = col + ((row)*Game::WIDTH) + 1
     @builder.get_object("image#{i}").pixbuf = Gdk::Pixbuf.new(image_for_piece(piece))
+  end
+
+  def update_player(current,player)
+    @game.players.each_with_index do |player,i|
+      i = i+1
+      p "current player"
+      p i
+      if current != i 
+        @builder.get_object("player#{i}").text = "#{player.name}"
+        @builder.get_object("player#{i}desc").text = "#{player.type}"
+      else
+        @builder.get_object("player#{i}").text = "<font color=\"#0097ff\">*#{player.name}</font>"
+        @builder.get_object("player#{i}desc").text = "#{player.type}"
+      end
+    end
   end
 
   def image_for_piece(piece)
