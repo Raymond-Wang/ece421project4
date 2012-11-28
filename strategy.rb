@@ -1,4 +1,4 @@
-require "./c4"
+require "./models"
 
 # NOTE Strategies can have their own instance variables to help manage things.
 # For example a hierarchical tree or whatever it takes. It has access
@@ -8,7 +8,7 @@ require "./c4"
 #
 # Ideas (might be overkill!!)
 # http://en.wikipedia.org/wiki/Minimax#Minimax_algorithm_with_alternate_moves
-class Strategy < Model
+class Strategy 
   def initialize(game)
     # We give the stategy access to the entire gamemodel which
     # includes the board and stats on players.
@@ -53,35 +53,35 @@ class Strategy < Model
   end
 
   def find(arr)
-    if (arr.length > GAME::HEIGHT)
+    if (arr.length > Game::HEIGHT)
       raise PreconditionError, 'Search array too long.'
     end
-    if (arr.empty)
+    if (arr.empty?)
       raise PreconditionError, 'Search array is empty.'
     end
-    for i in 0..(GAME::HEIGHT-1)
-      for j in 0..(GAME::WIDTH-arr.length)
+    for i in 0..(Game::HEIGHT-1)
+      for j in 0..(Game::WIDTH-arr.length)
         if horizontal(i,j,arr)
           return i,j,i,j+4
         end
       end
     end
-    for i in 0..(GAME::HEIGHT-arr.length)
-      for j in 0..(GAME::WIDTH-1)
+    for i in 0..(Game::HEIGHT-arr.length)
+      for j in 0..(Game::WIDTH-1)
         if vertical(i,j,arr)
           return i,j, i+4,j
         end
       end
     end
-    for i in 0..(GAME::HEIGHT-arr.length)
-      for j in 0..(GAME::WIDTH-arr.length)
+    for i in 0..(Game::HEIGHT-arr.length)
+      for j in 0..(Game::WIDTH-arr.length)
         if diagonaldown(i,j,arr)
           return i,j,i+4,j+4
         end
       end
     end
-    for i in (arr.length-1)..(GAME::HEIGHT-1)
-      for j in 0..(GAME::WIDTH-arr.length)
+    for i in (arr.length-1)..(Game::HEIGHT-1)
+      for j in 0..(Game::WIDTH-arr.length)
         if diagonalup(i,j,arr)
           return i,j,i-4,j+4
         end
@@ -91,7 +91,7 @@ class Strategy < Model
   end
 
   def top(i)
-    for j in GAME::HEIGHT..0
+    for j in Game::HEIGHT..0
       if @board[i][j] == 0
         return j
       end
@@ -100,10 +100,10 @@ class Strategy < Model
   end
 
   def hasAdjacent(row,col,piece)
-    fromI = (row == (GAME::HEIGHT-1)) ? 0 : -1
+    fromI = (row == (Game::HEIGHT-1)) ? 0 : -1
     toI = (row == 0) ? 0 : 1
     fromJ = (col == 0) ? 0 : -1
-    toJ = (col == (GAME::WIDTH-1)) ? 0 : 1
+    toJ = (col == (Game::WIDTH-1)) ? 0 : 1
     for i in fromI..toI
       for j in fromJ..toJ
         if @board[row+i][col+j] == piece
@@ -219,7 +219,7 @@ class C4Strategy < Strategy
   end
 
   def hasWin
-      for col in 0..GAME::HEIGHT
+      for col in 0..Game::HEIGHT
         if (top(col) > -1)
           @board[top(col)][col] = 2
         end

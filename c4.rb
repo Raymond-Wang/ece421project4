@@ -115,21 +115,21 @@ class Controller
   end
 
   def image_for_piece(piece)
-    return 'frame.png' unless not piece.nil?
+    return 'assets/img/frame.png' unless not piece.nil?
     case @game.game
     when Game::GAME_OTTO
       case piece
       when 1
-        'o.png'
+        'assets/img/o.png'
       when 2
-        't.png'
+        'assets/img/t.png'
       end
     when Game::GAME_C4
       case piece
       when 1
-        'black.png'
+        'assets/img/black.png'
       when 2
-        'red.png'
+        'assets/img/red.png'
       end
     end
   end
