@@ -184,5 +184,4 @@ class Controller
 
 end
 
-
-hello = Controller.new
+controller = Controller.new

@@ -199,7 +199,7 @@ class Game < Model
     self.players = @players
     self.difficulty = @difficulty
     self.currentPlayer = @currentPlayer
-    raise PostconditionError, "Notifiers should have been sent." unless changed?
+    raise PostconditionError, "Notifiers should have been sent." unless not changed?
   end
 
   # Reset the game to the starting turn. Give control to the first player.
@@ -287,6 +287,7 @@ end
 class Player < Model
   TYPE_AI = 'AI'
   TYPE_HUMAN = 'HUMAN'
+  TYPES = [TYPE_AI,TYPE_HUMAN]
 
   attr_accessor :type, :name
 
