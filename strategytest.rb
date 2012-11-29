@@ -9,7 +9,7 @@ class StrategyTest < Test::Unit::TestCase
   end
 
   def test_c4_ai_win
-    game = Game.new 3
+    game = Game.new 2
     game.players = [@raymond,@jacob]
     game.board[5][0] = 2
     game.board[5][1] = 2
@@ -18,7 +18,7 @@ class StrategyTest < Test::Unit::TestCase
   end
 
   def test_c4_ai_prevent_win
-    game = Game.new 3
+    game = Game.new 2
     game.players = [@raymond,@jacob]
     game.board[5][0] = 1
     game.board[5][1] = 1
@@ -27,7 +27,7 @@ class StrategyTest < Test::Unit::TestCase
   end
 
   def test_c4_ai_feed_win
-    game = Game.new 3
+    game = Game.new 2
     game.players = [@raymond,@jacob]
     game.board[5][0] = 2
     game.board[5][1] = 1
@@ -39,7 +39,7 @@ class StrategyTest < Test::Unit::TestCase
   end
 
   def test_ot_ai_win
-    game = Game.new 3
+    game = Game.new 2
     game.game = Game::GAME_OTTO
     game.players = [@raymond,@jacob]
     game.board[5][0] = 2
@@ -49,7 +49,7 @@ class StrategyTest < Test::Unit::TestCase
   end
 
   def test_ot_ai_prevent_win
-    game = Game.new 3
+    game = Game.new 2
     game.game = Game::GAME_OTTO
     game.players = [@raymond,@jacob]
     game.board[5][0] = 1
@@ -59,12 +59,12 @@ class StrategyTest < Test::Unit::TestCase
   end
 
   def test_ot_ai_feed_win
-    game = Game.new 3
+    game = Game.new 2
     game.game = Game::GAME_OTTO
     game.players = [@raymond,@jacob]
     game.board[5][0] = 1
     game.board[5][1] = 2
-    assert_not_equal 2, game.move
+    assert_not_equal 3, game.move
   end
 
 end

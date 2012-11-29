@@ -118,8 +118,8 @@ class Strategy
   end
 
   def hasAdjacent(board, row,col,piece)
-    fromI = (row == (Game::HEIGHT-1)) ? 0 : -1
-    toI = (row == 0) ? 0 : 1
+    fromI = (row == 0) ? 0 : -1
+    toI = (row == (Game::HEIGHT-1)) ? 0 : 1
     fromJ = (col == 0) ? 0 : -1
     toJ = (col == (Game::WIDTH-1)) ? 0 : 1
     for i in fromI..toI
