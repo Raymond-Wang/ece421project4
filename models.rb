@@ -15,21 +15,29 @@ class Game < Model
   U_DIFFICULTY = 4
   U_GAME = 5
 
+  # Ending states.
   WIN = 1
   DRAW = 0
   ONGOING = nil
   ENDSTATES = [WIN,DRAW,ONGOING]
 
+  # Game types.
   GAME_C4 = 0
   GAME_OTTO = 1
   GAMES = [GAME_OTTO,GAME_C4]
+
+  # Difficulty
   MIN_DIFFICULTY = 1
   MAX_DIFFICULTY = 3
+
+  # Board dimensions.
   HEIGHT = 6
   WIDTH = 7
 
+  MIN_PLAYERS = 2
+  
   attr_accessor :game, :difficulty, :currentPlayer, :board
-  attr_reader :players, :completed
+  attr_reader :players, :completed, :turn
 
   # Row 0 is at the top, Col 0 is on the left
   # In Connect 4, '1' is player piece, '2' is computer piece
@@ -43,6 +51,7 @@ class Game < Model
     self.game = game 
     self.turn = 1
     self.difficulty = dif
+
     @board = Array.new(HEIGHT) { Array.new(WIDTH) } 
     # Initialize our strategy
     initStrategy
@@ -55,6 +64,9 @@ class Game < Model
     @difficulty = dif
     changed(true)
     notify_observers U_DIFFICULTY, dif
+    if not @difficulty == dif
+      raise PostconditionError, "Difficulty not set correctly."
+    end
   end
 
   # The game has been finished.
@@ -67,6 +79,9 @@ class Game < Model
       changed(true)
       notify_observers state, @players[@currentPlayer]
     end
+    if not @completed == state
+      raise PostconditionError, "State not set correctly."
+    end
   end
 
   def game=(game)
@@ -76,6 +91,9 @@ class Game < Model
     @game=game
     changed(true)
     notify_observers U_GAME, game
+    if not @game == game
+      raise PostconditionError, "Game type not set correctly."
+    end
   end
 
   def turn=(turn)
@@ -85,6 +103,9 @@ class Game < Model
     @turn = turn
     changed(true)
     notify_observers U_TURN, turn
+    if not @turn == turn
+      raise PostconditionError, "Turn not set correctly."
+    end
   end
   
   def players=(players)
@@ -98,6 +119,9 @@ class Game < Model
       }
     end
     @players = players
+    if not @players.length == players.length
+      raise PostconditionError, "Players not set correctly."
+    end
   end
 
   # Somewhat of a factory method for the strategy but 
@@ -107,6 +131,9 @@ class Game < Model
       @strategy = C4Strategy.new self
     elsif @game == GAME_OTTO
       @strategy = OttoStrategy.new self
+    end
+    if @strategy.nil?
+      raise PostconditionError, "Strategy not initialized."
     end
   end
 
@@ -131,22 +158,39 @@ class Game < Model
 
   # Col is 0 indexed
   def place_tile(col)
-    if not col.between?(0,WIDTH-1)
-      raise PreconditionError, "Column outside of range."
+    if not @players.length >= MIN_PLAYERS
+      raise PreconditionError, "Not enough players."
     end
-    return false unless check_col(col)
-    r,c = next_tile(col)
-    @board[r][c] = current_piece
-    changed(true)
-    # Provide 1 indexed values externally.
-    notify_observers U_BOARD, r, c, @board[r][c]
-    if win?
-      self.completed = check_win
+    body = Proc.new do
+      if not col.between?(0,WIDTH-1)
+        raise PreconditionError, "Column outside of range."
+      end
+      return false unless check_col(col)
+      r,c = next_tile(col)
+      @board[r][c] = current_piece
+      changed(true)
+      # Provide 1 indexed values externally.
+      notify_observers U_BOARD, r, c, @board[r][c]
+      if win?
+        self.completed = check_win
+      end
+      next_turn
+      true
     end
-    next_turn
-    true
+    initial_turn = @turn
+    result = body.call
+    # Rubyism
+    if not !!result == result
+      raise PostconditionError, "Result should be boolean."
+    else
+      if result and @turn == initial_turn
+        raise PostconditionError, "Turn should have advanced if the tile was placed."
+      end
+    end
+    result
   end
 
+  # Re-trigger notifications on all object properties.
   def sync
     # Reassigns all variables as a ghetto way of sending out
     # signals to all observers.
@@ -155,8 +199,10 @@ class Game < Model
     self.players = @players
     self.difficulty = @difficulty
     self.currentPlayer = @currentPlayer
+    raise PostconditionError, "Notifiers should have been sent." unless changed?
   end
 
+  # Reset the game to the starting turn. Give control to the first player.
   def reset
     self.turn = 1
     self.currentPlayer = 0
@@ -166,6 +212,12 @@ class Game < Model
         changed(true)
         notify_observers U_BOARD, r, c, @board[r][c]
       end
+    end
+    if @turn != 1
+      raise PostconditionError, "Turn should be set to one after reset."
+    end
+    if @currentPlayer != 0
+      raise PostconditionError, "Player should be reset."
     end
   end
 
@@ -180,6 +232,9 @@ class Game < Model
   end
 
   def next_turn
+    if not @players.length >= MIN_PLAYERS
+      raise PreconditionError, "Not enough players."
+    end
     self.turn = @turn + 1
     self.currentPlayer = @currentPlayer = (@currentPlayer + 1) % @players.length
   end
@@ -236,6 +291,12 @@ class Player < Model
   attr_accessor :type, :name
 
   def initialize(name,type)
+    if not name.respond_to? :to_s
+      raise PreconditionError, "Players name cannot be represented as a string."
+    end
+    if not TYPES.include? type
+      raise  PreconditionError, "Invalid player type."
+    end
     @name, @type = name, type
   end
 

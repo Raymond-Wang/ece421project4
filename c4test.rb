@@ -68,4 +68,16 @@ class C4Test < Test::Unit::TestCase
     assert_equal [5,6], game.indices(35)
   end
 
+  def test_reset
+    game = Game.new
+    game.instance_eval do
+      @strategy = DummyStrategy.new
+    end
+    assert_equal 1, game.turn
+    game.place_tile(0)
+    assert_equal 2, game.turn
+    game.place_tile(0)
+    assert_equal 3, game.turn
+  end
+
 end

@@ -26,7 +26,7 @@ class Controller
 
       # The 'New' button will start a new game
       menu = @builder.get_object("New")
-      menu.signal_connect( "activate" ) { setUpTheBoard }
+      menu.signal_connect( "activate" ) { @game.reset }
 
       # The 'Settings' button will open a new window called settings
       settings = @builder.get_object("Settings")
