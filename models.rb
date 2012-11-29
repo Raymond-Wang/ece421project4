@@ -146,12 +146,15 @@ class Game < Model
     @turn < WIDTH*HEIGHT
   end
 
-  def move
+  def computer_actions
     if @players[@currentPlayer].type == Player::TYPE_AI
-      @strategy.move
-      # Delay a bit.
-      sleep 0.2
+      move = @strategy.move
+      place_tile(move)
     end
+  end
+
+  def move
+    @strategy.move
   end
 
   # col is the 0 indexed column
@@ -287,7 +290,7 @@ class Game < Model
     self.turn = @turn + 1
     self.currentPlayer = @currentPlayer = (@currentPlayer + 1) % @players.length
     # Move if necessary.
-    move
+    computer_actions
   end
 
   def turn=(val)
