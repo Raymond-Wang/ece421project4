@@ -14,6 +14,7 @@ class Game < Model
   U_RESET = 3
   U_DIFFICULTY = 4
   U_GAME = 5
+  U_COMPLETED = 6
 
   # Ending states.
   WIN = 1
@@ -71,13 +72,13 @@ class Game < Model
 
   # The game has been finished.
   def completed=(state)
-    if not STATES.include? val
+    if not STATES.include? state
       raise PreconditionError, "Invalid game victory state."
     end
     if not state === ONGOING
       @completed = state
       changed(true)
-      notify_observers state, @players[@currentPlayer]
+      notify_observers U_COMPLETED, state, @players[@currentPlayer]
     end
     if not @completed == state
       raise PostconditionError, "State not set correctly."
@@ -216,13 +217,15 @@ class Game < Model
       completed = Game::DRAW
     else
       if not movesRemaining?
-        completed = Game::Draw
+        completed = Game::DRAW
+      else
+        completed = Game::ONGOING
       end
     end
     if completed != Game::ONGOING
       self.completed = completed
     end
-    if status != Game::ONGOING and not self.completed
+    if completed == Game::ONGOING and not movesRemaining?
       raise PostconditionError, "Game is no longer ongoing and should be completed."
     end
     self.completed
