@@ -127,8 +127,48 @@ class Strategy
     return false
   end
 
+
   def move
-    raise NotImplementedError, 'Concrete, game specific strategies should implement move.'
+    simBoard = getSim
+    if @game.difficulty >= MEDIUM
+      winner, col = hasWin(simBoard)
+      if winner > 0
+        return col
+      end
+    end
+    if @game.difficulty == HARD
+      for col in 0..(Game::WIDTH-1)
+        if(top(simBoard,col) > -1)
+          if(hasAdjacent(simBoard,top(simBoard,col),col,2))
+            simBoard[top(simBoard.col)][col] = 2
+            winner, x = hasWin(simBoard)
+            simBoard[top(simBoard,col)][col] = nil
+            if winner != 1 && rand(1)==1
+              return col
+            end
+          end
+        end
+      end
+    end
+    if @game.difficulty >= MEDIUM
+      for i in 1..10
+        begin 
+          col = rand(6)
+          row = top(simBoard,col)
+        end until row > -1
+        simBoard[row][col] = 2;
+        winner, x = hasWin(simBoard)
+	simBoard[row][col] = nil;
+        if winner != 1
+          return col
+        end
+      end  
+    end
+    begin 
+      col = rand(6)
+      row = top(simBoard,col)
+    end until row > -1
+    return col
   end
 
   # Evaluate position based on minimax.
@@ -139,6 +179,10 @@ class Strategy
 
   def win?
     raise NotImplementedError, 'Concrete, game specific strategies should implement win?.'
+  end
+
+  def status
+    raise NotImplementedError, 'Concrete, game specific strategies should implement status.'
   end
 end
 
@@ -162,7 +206,7 @@ class OttoStrategy< Strategy
     return 0
   end
 
-  def winner
+  def status
     simBoard = getSim
     p1 = find(simBoard,[1,2,2,1])
     p2 = find(simBoard,[2,1,1,2])
@@ -222,49 +266,6 @@ class OttoStrategy< Strategy
       return 0, 0
   end
 
-  def move
-    simBoard = getSim
-    if @game.difficulty >= MEDIUM
-      winner, col = hasWin(simBoard)
-      if winner > 0
-        return col
-      end
-    end
-    if @game.difficulty == HARD
-      for col in 0..(Game::WIDTH-1)
-        if(top(simBoard,col) > -1)
-          if(hasAdjacent(simBoard,top(simBoard,col),col,2))
-            simBoard[top(simBoard.col)][col] = 2
-            winner, x = hasWin(simBoard)
-            simBoard[top(simBoard,col)][col] = nil
-            if winner != 1 && rand(1)==1
-              return col
-            end
-          end
-        end
-      end
-    end
-    if @game.difficulty >= MEDIUM
-      for i in 1..10
-        begin 
-          col = rand(6)
-          row = top(simBoard,col)
-        end until row > -1
-        simBoard[row][col] = 2;
-        winner, x = hasWin(simBoard)
-	simBoard[row][col] = nil;
-        if winner != 1
-          return col
-        end
-      end  
-    end
-    begin 
-      col = rand(6)
-      row = top(simBoard,col)
-    end until row > -1
-    return col
-  end
-
 end
 
 class C4Strategy < Strategy
@@ -279,6 +280,19 @@ class C4Strategy < Strategy
     p1 = find(board,[1,1,1,1])
     p2 = find(board,[2,2,2,2])
     return p1[0]>=0 || p2[0]>=0
+  end
+
+  def status
+    simBoard = getSim
+    p1 = find(simBoard,[1,1,1,1])
+    p2 = find(simBoard,[2,2,2,2])
+    if p1[0]>0
+      return P1_WIN
+    end
+    if p2[0]>0
+      return P2_WIN
+    end
+    return ONGOING
   end
 
   def winningMove
@@ -313,49 +327,6 @@ class C4Strategy < Strategy
       end
     end
     return 0, 0
-  end
-
-  def move
-    simBoard = getSim
-    if @game.difficulty >= MEDIUM
-      winner, col = hasWin(simBoard)
-      if winner > 0
-        return col
-      end
-    end
-    if @game.difficulty == HARD
-      for col in 0..(Game::WIDTH-1)
-        if(top(simBoard,col) > -1)
-          if(hasAdjacent(simBoard,top(simBoard,col),col,2))
-            simBoard[top(simBoard.col)][col] = 2
-            winner, x = hasWin(simBoard)
-            simBoard[top(simBoard,col)][col] = nil
-            if winner != 1 && rand(1)==1
-              return col
-            end
-          end
-        end
-      end
-    end
-    if @game.difficulty >= MEDIUM
-      for i in 1..10
-        begin 
-          col = rand(6)
-          row = top(simBoard,col)
-        end until row > -1
-        simBoard[row][col] = 2;
-        winner, x = hasWin(simBoard)
-	simBoard[row][col] = nil;
-        if winner != 1
-          return col
-        end
-      end  
-    end
-    begin 
-      col = rand(6)
-      row = top(simBoard,col)
-    end until row > -1
-    return col
   end
 end
 
