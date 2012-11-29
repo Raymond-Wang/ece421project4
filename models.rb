@@ -204,7 +204,7 @@ class Game < Model
 
   # Check and assign completion state by checking with the strategy.
   def check_status
-    raise PostconditionError, "Strategy is incomplete." unless @strategy.respond_to? :winner
+    raise PostconditionError, "Strategy is incomplete." unless @strategy.respond_to? :status
     status = @strategy.status
     completed = Game::ONGOING
     case status
