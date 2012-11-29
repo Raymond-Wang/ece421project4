@@ -44,7 +44,7 @@ class Game < Model
   # In Connect 4, '1' is player piece, '2' is computer piece
   # In OTTO TOOT, '1' is O, '2' is T, and computer plays as TOOT
 
-  def initialize(dif=3, players=[], game=GAME_C4)
+  def initialize(dif=2, players=[], game=GAME_C4)
     # Array of all players. Can be modified dynamically as players leave
     # and enter.
     self.players = players 
@@ -75,11 +75,9 @@ class Game < Model
     if not STATES.include? state
       raise PreconditionError, "Invalid game victory state."
     end
-    if not state === ONGOING
-      @completed = state
-      changed(true)
-      notify_observers U_COMPLETED, state, @players[@currentPlayer]
-    end
+    @completed = state
+    changed(true)
+    notify_observers U_COMPLETED, state, @players[@currentPlayer]
     if not @completed == state
       raise PostconditionError, "State not set correctly."
     end
@@ -149,7 +147,11 @@ class Game < Model
   end
 
   def move
-    @strategy.move
+    if @players[@currentPlayer].type == Player::TYPE_AI
+      @strategy.move
+      # Delay a bit.
+      sleep 0.2
+    end
   end
 
   # col is the 0 indexed column
@@ -164,6 +166,7 @@ class Game < Model
 
   # Col is 0 indexed
   def place_tile(col)
+    raise PreconditionError, "Game is done" unless @completed == Game::ONGOING
     if not @players.length >= MIN_PLAYERS
       raise PreconditionError, "Not enough players."
     end
@@ -178,12 +181,14 @@ class Game < Model
       r,c = next_tile(col)
       @board[r][c] = current_piece
       changed(true)
+
       # Provide 1 indexed values externally.
       notify_observers U_BOARD, r, c, @board[r][c]
 
+      # Sets and checks!
       check_status
 
-      if not self.completed
+      if @completed == Game::ONGOING
         next_turn
       end
 
@@ -228,7 +233,7 @@ class Game < Model
     if completed == Game::ONGOING and not movesRemaining?
       raise PostconditionError, "Game is no longer ongoing and should be completed."
     end
-    self.completed
+    @completed
   end
 
   # Re-trigger notifications on all object properties.
@@ -247,6 +252,7 @@ class Game < Model
   def reset
     self.turn = 1
     self.currentPlayer = 0
+    self.completed = Game::ONGOING
     (0...HEIGHT).each do |r|
       (0...WIDTH).each do |c|
         @board[r][c] = nil
@@ -272,12 +278,16 @@ class Game < Model
     end
   end
 
+  # Advance to the next turn and cycle through per-turn actions.
   def next_turn
+    raise PreconditionError, "Game is Done" unless @completed == Game::ONGOING
     if not @players.length >= MIN_PLAYERS
       raise PreconditionError, "Not enough players."
     end
     self.turn = @turn + 1
     self.currentPlayer = @currentPlayer = (@currentPlayer + 1) % @players.length
+    # Move if necessary.
+    move
   end
 
   def turn=(val)

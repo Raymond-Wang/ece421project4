@@ -2,8 +2,8 @@ require "test/unit"
 require "./c4.rb"
 
 class DummyStrategy
-  def win?
-    return false
+  def status
+    return Game::ONGOING
   end
 end
 
@@ -69,7 +69,7 @@ class C4Test < Test::Unit::TestCase
   end
 
   def test_reset
-    game = Game.new
+    game = Game.new 2, [@jacob, @raymond]
     game.instance_eval do
       @strategy = DummyStrategy.new
     end
