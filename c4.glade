@@ -103,6 +103,7 @@
               <object class="GtkComboBox" id="DifficultyCombo">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="model">liststore2</property>
                 <child>
                   <object class="GtkCellRendererText" id="cellrenderertext2"/>
                   <attributes>
@@ -119,21 +120,10 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="player1settings">
-                <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Player 1
-</property>
-              </object>
-              <packing>
-                <property name="top_attach">2</property>
-                <property name="bottom_attach">3</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkLabel" id="player2settings">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="yalign">1</property>
                 <property name="label" translatable="yes">Player 2
 
 </property>
@@ -155,6 +145,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
+                    <property name="yalign">1</property>
                     <property name="draw_indicator">True</property>
                   </object>
                   <packing>
@@ -199,6 +190,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
+                    <property name="yalign">1</property>
                     <property name="draw_indicator">True</property>
                   </object>
                   <packing>
@@ -231,6 +223,19 @@
                 <property name="bottom_attach">3</property>
               </packing>
             </child>
+            <child>
+              <object class="GtkLabel" id="player1settings">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="yalign">1</property>
+                <property name="label" translatable="yes">Player 1
+</property>
+              </object>
+              <packing>
+                <property name="top_attach">2</property>
+                <property name="bottom_attach">3</property>
+              </packing>
+            </child>
           </object>
           <packing>
             <property name="expand">True</property>
@@ -245,7 +250,38 @@
       <action-widget response="0">SettingsCancel</action-widget>
     </action-widgets>
   </object>
-  <object class="GtkDialog" id="dialog2">
+  <object class="GtkListStore" id="liststore1">
+    <columns>
+      <!-- column-name Game -->
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row>
+        <col id="0" translatable="yes">Connect 4</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">Otto Toot</col>
+      </row>
+    </data>
+  </object>
+  <object class="GtkListStore" id="liststore2">
+    <columns>
+      <!-- column-name gchararray1 -->
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row>
+        <col id="0" translatable="yes">Easy</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">Medium</col>
+      </row>
+      <row>
+        <col id="0" translatable="yes">Hard</col>
+      </row>
+    </data>
+  </object>
+  <object class="GtkDialog" id="victorybox">
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
     <property name="type_hint">dialog</property>
@@ -260,7 +296,7 @@
             <property name="can_focus">False</property>
             <property name="layout_style">end</property>
             <child>
-              <object class="GtkButton" id="completequit">
+              <object class="GtkButton" id="victoryquit">
                 <property name="label" translatable="yes">Quit
 </property>
                 <property name="use_action_appearance">False</property>
@@ -275,7 +311,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="completednew">
+              <object class="GtkButton" id="victorynew">
                 <property name="label" translatable="yes">New Game
 </property>
                 <property name="use_action_appearance">False</property>
@@ -311,7 +347,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkLabel" id="victoriousplayer">
+          <object class="GtkLabel" id="victoryplayer">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
           </object>
@@ -324,40 +360,9 @@
       </object>
     </child>
     <action-widgets>
-      <action-widget response="0">completequit</action-widget>
-      <action-widget response="0">completednew</action-widget>
+      <action-widget response="0">victoryquit</action-widget>
+      <action-widget response="0">victorynew</action-widget>
     </action-widgets>
-  </object>
-  <object class="GtkListStore" id="liststore1">
-    <columns>
-      <!-- column-name Game -->
-      <column type="gchararray"/>
-    </columns>
-    <data>
-      <row>
-        <col id="0" translatable="yes">Connect 4</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Otto Toot</col>
-      </row>
-    </data>
-  </object>
-  <object class="GtkListStore" id="liststore2">
-    <columns>
-      <!-- column-name gchararray1 -->
-      <column type="gchararray"/>
-    </columns>
-    <data>
-      <row>
-        <col id="0" translatable="yes">Easy</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Medium</col>
-      </row>
-      <row>
-        <col id="0" translatable="yes">Hard</col>
-      </row>
-    </data>
   </object>
   <object class="GtkWindow" id="window1">
     <property name="width_request">860</property>
@@ -1163,7 +1168,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="n_rows">2</property>
-            <property name="n_columns">3</property>
+            <property name="n_columns">4</property>
             <property name="homogeneous">True</property>
             <child>
               <object class="GtkLabel" id="player1">
@@ -1266,6 +1271,17 @@
                 <property name="right_attach">3</property>
                 <property name="x_padding">2</property>
                 <property name="y_padding">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkImage" id="incoming">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="left_attach">3</property>
+                <property name="right_attach">4</property>
+                <property name="bottom_attach">2</property>
               </packing>
             </child>
           </object>

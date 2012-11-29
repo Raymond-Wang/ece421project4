@@ -137,6 +137,7 @@ class Controller
   end
 
   def update_player(current,player)
+    @builder.get_object("incoming").pixbuf = Gdk::Pixbuf.new(image_for_piece(@game.currentPlayer+1))
     @game.players.each_with_index do |player,i|
       label = @builder.get_object("player#{i+1}")
       desc = @builder.get_object("player#{i+1}desc")
