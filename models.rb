@@ -19,7 +19,7 @@ class Game < Model
   WIN = 1
   DRAW = 0
   ONGOING = nil
-  ENDSTATES = [WIN,DRAW,ONGOING]
+  STATES = [WIN,DRAW,ONGOING]
 
   # Game types.
   GAME_C4 = 0
@@ -71,7 +71,7 @@ class Game < Model
 
   # The game has been finished.
   def completed=(state)
-    if not ENDSTATES.include? val
+    if not STATES.include? val
       raise PreconditionError, "Invalid game victory state."
     end
     if not state === ONGOING
@@ -143,6 +143,10 @@ class Game < Model
     @strategy.win?
   end
 
+  def movesRemaining?
+    @turn < WIDTH*HEIGHT
+  end
+
   def move
     @strategy.move
   end
@@ -162,22 +166,29 @@ class Game < Model
     if not @players.length >= MIN_PLAYERS
       raise PreconditionError, "Not enough players."
     end
+
     body = Proc.new do
       if not col.between?(0,WIDTH-1)
         raise PreconditionError, "Column outside of range."
       end
+
       return false unless check_col(col)
+
       r,c = next_tile(col)
       @board[r][c] = current_piece
       changed(true)
       # Provide 1 indexed values externally.
       notify_observers U_BOARD, r, c, @board[r][c]
-      if win?
-        self.completed = check_win
+
+      check_status
+
+      if not self.completed
+        next_turn
       end
-      next_turn
-      true
+
+      return true
     end
+
     initial_turn = @turn
     result = body.call
     # Rubyism
@@ -190,6 +201,33 @@ class Game < Model
     end
     result
   end
+
+  # Check and assign completion state by checking with the strategy.
+  def check_status
+    raise PostconditionError, "Strategy is incomplete." unless @strategy.respond_to? :winner
+    status = @strategy.status
+    completed = Game::ONGOING
+    case status
+    when Strategy::P1_WIN
+      completed = Game::WIN
+    when Strategy::P2_WIN
+      completed = Game::WIN
+    when Strategy::DRAW
+      completed = Game::DRAW
+    else
+      if not movesRemaining?
+        completed = Game::Draw
+      end
+    end
+    if completed not Game::ONGOING
+      self.completed = completed
+    end
+    if status not Game::ONGOING and not self.completed
+      raise PostconditionError, "Game is no longer ongoing and should be completed."
+    end
+    self.completed
+  end
+  private
 
   # Re-trigger notifications on all object properties.
   def sync
