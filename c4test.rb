@@ -1,6 +1,12 @@
 require "test/unit"
 require "./c4.rb"
 
+class DummyStrategy
+  def win?
+    return false
+  end
+end
+
 class C4Test < Test::Unit::TestCase
 
   def setup
@@ -39,7 +45,9 @@ class C4Test < Test::Unit::TestCase
   def test_place_tile
     game = Game.new 1
     game.players = [@jacob,@raymond]
-
+    game.instance_eval do
+      @strategy = DummyStrategy.new
+    end
     (Game::HEIGHT-1).downto(0).each { |i|
       assert game.place_tile(3), "Tile should be placeable"
       assert_not_equal nil, game.board[i][3]
