@@ -81,11 +81,6 @@ class Controller
     @builder.get_object("image#{i}").pixbuf = Gdk::Pixbuf.new(image_for_piece(piece))
   end
 
-  def update_game(game)
-    @game = game
-    @builder.get_object("game_type").text = game
-  end
-
   def update_turn(turn)
     @builder.get_object("turn").text = "Turn: #{turn}" 
   end
@@ -93,9 +88,9 @@ class Controller
   def update_game(game)
     case game
     when Game::GAME_OTTO
-      label = "Otto"
+      label = "Game Type: Otto"
     when Game::GAME_C4
-      label = "Connect 4"
+      label = "Game Type: Connect 4"
     end
     @builder.get_object("game_type").text = label
   end
@@ -106,10 +101,10 @@ class Controller
       desc = @builder.get_object("player#{i+1}desc")
       if current != i 
         label.text = "#{player.name}"
-        desc.text = "#{player.type}"
+        desc.text = "Player Type: #{player.desc}"
       else
         label.set_markup("<span weight=\"bold\" foreground=\"#0097ff\">*#{player.name}</span>")
-        desc.text = "#{player.type}"
+        desc.text = "Player Type: #{player.desc}"
       end
     end
   end

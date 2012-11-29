@@ -322,23 +322,23 @@ class C4Strategy < Strategy
   end
 
   def hasWin(board)
-      for col in 0..(Game::WIDTH-1)
+    for col in 0..(Game::WIDTH-1)
       theTop = top(board,col)
-        if (top(board,col) > -1)
-          board[theTop][col] = 2
-          if win(board)
-	    board[theTop][col] = nil
-            return 2, col
-          end
-          board[theTop][col] = 1
-          if win(board)
-            board[theTop][col] = nil
-            return 1, col
-          end  
+      if (top(board,col) > -1)
+        board[theTop][col] = 2
+        if win(board)
           board[theTop][col] = nil
-	end
+          return 2, col
+        end
+        board[theTop][col] = 1
+        if win(board)
+          board[theTop][col] = nil
+          return 1, col
+        end  
+        board[theTop][col] = nil
       end
-      return 0, 0
+    end
+    return 0, 0
   end
 end
 
