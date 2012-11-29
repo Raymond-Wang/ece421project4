@@ -18,11 +18,11 @@ class Controller
 
       # Destroying the window will terminate the program
       window = @builder.get_object("window1")
-      window.signal_connect( "destroy" ) { Gtk.main_quit }
+      window.signal_connect( "destroy" ) { quit }
 
       # The 'Quit' button will terminate the program
       menu = @builder.get_object("Quit")
-      menu.signal_connect( "activate" ) { Gtk.main_quit }
+      menu.signal_connect( "activate" ) { quit }
 
       # The 'New' button will start a new game
       menu = @builder.get_object("New")
@@ -49,6 +49,15 @@ class Controller
         @builder.get_object("button" + i.to_s).signal_connect("clicked") {button_clicked(i)};
       }
 
+      victoryQuit = @builder.get_object("victoryquit").signal_connect("clicked") do
+        quit
+      end
+
+      victoryNew = @builder.get_object("victorynew").signal_connect("clicked") do
+        @game.reset
+        @builder.get_object("victorybox").hide()
+      end
+
       @game = Game.new 1
       @game.players = [Player.new('jacob', Player::TYPE_AI), Player.new('raymond', Player::TYPE_AI)]
       # Register observer
@@ -73,7 +82,35 @@ class Controller
       update_turn *args
     when Game::U_GAME
       update_game *args
+    when Game::U_COMPLETED
+      update_completed *args
     end
+  end
+
+  def update_completed(state,player)
+    if state != Game::ONGOING
+      disable_buttons
+      @builder.get_object("victorybox").show()
+      if state == Game::DRAW
+        @builder.get_object("victoryplayer").set_markup("<span weight=\"bold\" foreground=\"#0097ff\">Game is a draw!</span>")
+      else
+        @builder.get_object("victoryplayer").set_markup("<span weight=\"bold\" foreground=\"#0097ff\">*#{player.name} has won!</span>")
+      end
+    else
+      enable_buttons
+    end
+  end
+
+  def enable_buttons
+    1.upto(Game::WIDTH) { |i| 
+      @builder.get_object("button" + i.to_s).sensitive = true
+    }
+  end
+
+  def disable_buttons
+    1.upto(Game::WIDTH) { |i| 
+      @builder.get_object("button" + i.to_s).sensitive = false
+    }
   end
 
   def update_board(row,col,piece)
@@ -169,10 +206,9 @@ class Controller
   
   def button_clicked(col)
     @game.place_tile(col-1)
-    @game.place_tile(@game.move)
   end  
 
-  def gtk_main_quit
+  def quit
     Gtk.main_quit()
   end
 
