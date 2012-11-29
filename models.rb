@@ -89,6 +89,7 @@ class Game < Model
       raise PreconditionError, "Strategy should be one of #{GAMES.inspect}"
     end
     @game=game
+    initStrategy
     changed(true)
     notify_observers U_GAME, game
     if not @game == game
