@@ -157,7 +157,7 @@ class Strategy
       for col in 0..(Game::WIDTH-1)
         if(top(simBoard,col) > -1)
           if(hasAdjacent(simBoard,top(simBoard,col),col,@current_player))
-            simBoard[top(simBoard.col)][col] = @current_player
+            simBoard[top(simBoard,col)][col] = @current_player
             winner, x = hasWin(simBoard)
             simBoard[top(simBoard,col)][col] = nil
             if winner != @opposing_player && rand(1)==1
