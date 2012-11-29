@@ -13,6 +13,11 @@ class Strategy
   P1_WIN = 1
   P2_WIN = 2
   DRAW = 3
+
+  EASY = 1
+  MEDIUM = 2
+  HARD = 3
+
   def initialize(game)
     # We give the stategy access to the entire gamemodel which
     # includes the board and stats on players.
@@ -20,43 +25,47 @@ class Strategy
     @game = game
   end
 
-  def horizontal(i,j,arr)
+  def getSim
+    Marshal.load(Marshal.dump(@game.board))
+  end
+
+  def horizontal(board,i,j,arr)
     for k in 0..(arr.length-1)
-      if @board[i][j+k] != arr[k]
+      if board[i][j+k] != arr[k]
         return false
       end
     end
     return true
   end
 
-  def vertical(i,j,arr)
+  def vertical(board,i,j,arr)
     for k in 0..(arr.length-1)
-      if @board[i+k][j] != arr[k]
+      if board[i+k][j] != arr[k]
         return false
       end
     end
     return true
   end
 
-  def diagonaldown(i,j,arr)
+  def diagonaldown(board,i,j,arr)
     for k in 0..(arr.length-1)
-      if @board[i+k][j+k] != arr[k]
+      if board[i+k][j+k] != arr[k]
         return false
       end
     end
     return true
   end
 
-  def diagonalup(i,j,arr)
+  def diagonalup(board,i,j,arr)
     for k in 0..(arr.length-1)
-      if @board[i-k][j+k] != arr[k]
+      if board[i-k][j+k] != arr[k]
         return false
       end
     end
     return true
   end
 
-  def find(arr)
+  def find(board,arr)
     if (arr.length > Game::HEIGHT)
       raise PreconditionError, 'Search array too long.'
     end
@@ -65,52 +74,52 @@ class Strategy
     end
     for i in 0..(Game::HEIGHT-1)
       for j in 0..(Game::WIDTH-arr.length)
-        if horizontal(i,j,arr)
-          return i,j,i,j+4
+        if horizontal(board,i,j,arr)
+          return i,j,i,j+3
         end
       end
     end
     for i in 0..(Game::HEIGHT-arr.length)
       for j in 0..(Game::WIDTH-1)
-        if vertical(i,j,arr)
-          return i,j, i+4,j
+        if vertical(board,i,j,arr)
+          return i,j, i+3,j
         end
       end
     end
     for i in 0..(Game::HEIGHT-arr.length)
       for j in 0..(Game::WIDTH-arr.length)
-        if diagonaldown(i,j,arr)
-          return i,j,i+4,j+4
+        if diagonaldown(board,i,j,arr)
+          return i,j,i+3,j+3
         end
       end
     end
     for i in (arr.length-1)..(Game::HEIGHT-1)
       for j in 0..(Game::WIDTH-arr.length)
-        if diagonalup(i,j,arr)
-          return i,j,i-4,j+4
+        if diagonalup(board,i,j,arr)
+          return i,j,i-3,j+3
         end
       end
     end
     return -1,-1,-1,-1
   end
 
-  def top(i)
-    for j in Game::HEIGHT..0
-      if @board[i][j] == 0
+  def top(board,i)
+    (Game::HEIGHT-1).downto(0) { |j|
+      if board[j][i] == nil
         return j
       end
-    end
+    }
     return -1
   end
 
-  def hasAdjacent(row,col,piece)
+  def hasAdjacent(board, row,col,piece)
     fromI = (row == (Game::HEIGHT-1)) ? 0 : -1
     toI = (row == 0) ? 0 : 1
     fromJ = (col == 0) ? 0 : -1
     toJ = (col == (Game::WIDTH-1)) ? 0 : 1
     for i in fromI..toI
       for j in fromJ..toJ
-        if @board[row+i][col+j] == piece
+        if board[row+i][col+j] == piece
           return true
         end
       end
@@ -137,19 +146,19 @@ class OttoStrategy< Strategy
   def win?
     p1 = find([2,1,1,2])
     p2 = find([1,2,2,1])
-    return p1>0 || p2>0
+    return p1[0]>0 || p2[0]>0
   end
 
   def winner
     p1 = find([1,2,2,1])
     p2 = find([2,1,1,2])
-    if p1>0 && p2>0
+    if p1[0]>0 && p2[0]>0
       return DRAW
     end
-    if p1>0
+    if p1[0]>0
       return P1_WIN
     end
-    if p2>0
+    if p2[0]>0
       return P2_WIN
     end
     return ONGOING
@@ -180,38 +189,46 @@ class OttoStrategy< Strategy
   end
 
   def move
-    for col in 0..6
+    for col in 0..(Game::WIDTH-1)
       if (top(col) > -1)
-        @board[top(col)][col] = 2
+        @game.board[top(col)][col] = 2
       end
       if winner == 2
         return
       elsif winner == 1
-        @board[top(col)][col] = 1
+        @game.board[top(col)][col] = 1
       end
     end
     begin 
       col = rand(7)
       row = top(col)
     end until row > -1
-    @board[row][col] = 1 + rand(1);
+    @game.board[row][col] = 1 + rand(1);
   end
 
 end
 
 class C4Strategy < Strategy
   def win?
-    p1 = find([1,1,1,1])
-    p2 = find([2,2,2,2])
-    return p1>0 || p2>0
+    simBoard = getSim
+    p1 = find(simBoard,[1,1,1,1])
+    p2 = find(simBoard,[2,2,2,2])
+    return p1[0]>0 || p2[0]>0
+  end
+
+  def win(board)
+    p1 = find(board,[1,1,1,1])
+    p2 = find(board,[2,2,2,2])
+    return p1[0]>0 || p2[0]>0
   end
 
   def winningMove
-    a,b,c,d = find([1,1,1,1])
+    simBoard = getSim
+    a,b,c,d = find(simBoard,[1,1,1,1])
     if a>0
       return a,b,c,d
     else
-      a,b,c,d = find([2,2,2,2])
+      a,b,c,d = find(simBoard,[2,2,2,2])
       if a>0
         return a,b,c,d
       end
@@ -219,57 +236,57 @@ class C4Strategy < Strategy
     return -1,-1,-1,-1
   end
 
-  def hasWin
-      for col in 0..Game::HEIGHT
-        if (top(col) > -1)
-          @board[top(col)][col] = 2
-        end
-        if win?
-          @board[top(col)][col] = 0
-          return 2, col
-        else 
-          @board[top(col)][col] = 1
-          if win?
-            @board[top(col)][col] = 0
-            return 1, col
+  def hasWin(board)
+      for col in 0..(Game::WIDTH-1)
+      theTop = top(board,col)
+        if (top(board,col) > -1)
+          board[theTop][col] = 2
+          if win(board)
+	    board[theTop][col] = nil
+            return 2, col
           end
-        end
+          board[theTop][col] = 1
+          if win(board)
+            board[theTop][col] = nil
+            return 1, col
+          end  
+          board[theTop][col] = nil
+	end
       end
       return 0, 0
   end
 
   def move
-    if @game.difficulty >= 2
-      winner, col = hasWin
+    simBoard = getSim
+    if @game.difficulty >= MEDIUM
+      winner, col = hasWin(simBoard)
       if winner > 0
         return col
       end
     end
-    if @difficulty == 3
-      from = rand(6)
-      to = rand(6)
-      for col in from..to
-        if(top(col) > -1)
-          if(hasAdjacent(top(col),col,2))
-            @board[top(col)][col] = 2
-            winner, x = hasWin
-            @board[top(col)][col] = 0
-            if winner != 1
+    if @game.difficulty == 4
+      for col in 0..(Game::WIDTH-1)
+        if(top(simBoard,col) > -1)
+          if(hasAdjacent(simBoard,top(simBoard,col),col,2))
+            simBoard[top(simBoard.col)][col] = 2
+            winner, x = hasWin(simBoard)
+            simBoard[top(simBoard,col)][col] = nil
+            if winner != 1 && rand(1)==1
               return col
             end
           end
         end
       end
     end
-    if @difficulty >= 2
+    if @game.difficulty >= 4
       for i in 1..10
         begin 
           col = rand(6)
-          row = top(col)
+          row = top(simBoard,col)
         end until row > -1
-        @board[row][col] = 2;
-        winner, x = hasWin
-	@board[row][col] = 0;
+        simBoard[row][col] = 2;
+        winner, x = hasWin(simBoard)
+	simBoard[row][col] = nil;
         if winner != 1
           return col
         end
@@ -277,7 +294,7 @@ class C4Strategy < Strategy
     end
     begin 
       col = rand(6)
-      row = top(col)
+      row = top(simBoard,col)
     end until row > -1
     return col
   end
