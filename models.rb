@@ -27,8 +27,8 @@ class Game < Model
   GAMES = [GAME_OTTO,GAME_C4]
 
   # Difficulty
-  MIN_DIFFICULTY = 1
-  MAX_DIFFICULTY = 3
+  MIN_DIFFICULTY = 0
+  MAX_DIFFICULTY = 2
 
   # Board dimensions.
   HEIGHT = 6
@@ -43,7 +43,7 @@ class Game < Model
   # In Connect 4, '1' is player piece, '2' is computer piece
   # In OTTO TOOT, '1' is O, '2' is T, and computer plays as TOOT
 
-  def initialize(dif=1, players=[], game=GAME_C4)
+  def initialize(dif=3, players=[], game=GAME_C4)
     # Array of all players. Can be modified dynamically as players leave
     # and enter.
     self.players = players 

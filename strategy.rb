@@ -14,9 +14,9 @@ class Strategy
   P2_WIN = 2
   DRAW = 3
 
-  EASY = 1
-  MEDIUM = 2
-  HARD = 3
+  EASY = 0
+  MEDIUM = 1
+  HARD = 2
 
   def initialize(game)
     # We give the stategy access to the entire gamemodel which
@@ -127,8 +127,20 @@ class Strategy
     return false
   end
 
+  def moveRemaining?
+    simBoard = getSim
+    for col in 0..(Game::WIDTH-1)
+      if top(simBoard,col) >= 0
+        return true
+      end
+    end
+    return false
+  end
 
   def move
+    if !moveRemaining?
+      return
+    end
     simBoard = getSim
     if @game.difficulty >= MEDIUM
       winner, col = hasWin(simBoard)
