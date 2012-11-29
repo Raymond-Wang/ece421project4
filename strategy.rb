@@ -18,11 +18,16 @@ class Strategy
   MEDIUM = 1
   HARD = 2
 
+  @current_player = nil
+  @opposing_player = nil
+
   def initialize(game)
     # We give the stategy access to the entire gamemodel which
     # includes the board and stats on players.
     # Strategy might be player quantity dependent for example
     @game = game
+    @current_player = game.currentPlayer + 1
+    @opposing_player = 2 - game.currentPlayer
   end
 
   def getSim
@@ -151,11 +156,11 @@ class Strategy
     if @game.difficulty == HARD
       for col in 0..(Game::WIDTH-1)
         if(top(simBoard,col) > -1)
-          if(hasAdjacent(simBoard,top(simBoard,col),col,2))
-            simBoard[top(simBoard.col)][col] = 2
+          if(hasAdjacent(simBoard,top(simBoard,col),col,@current_player))
+            simBoard[top(simBoard.col)][col] = @current_player
             winner, x = hasWin(simBoard)
             simBoard[top(simBoard,col)][col] = nil
-            if winner != 1 && rand(1)==1
+            if winner != @opposing_player && rand(1)==1
               return col
             end
           end
@@ -168,10 +173,10 @@ class Strategy
           col = rand(6)
           row = top(simBoard,col)
         end until row > -1
-        simBoard[row][col] = 2;
+        simBoard[row][col] = @current_player;
         winner, x = hasWin(simBoard)
 	simBoard[row][col] = nil;
-        if winner != 1
+        if winner != @opposing_player
           return col
         end
       end  
@@ -199,13 +204,6 @@ class Strategy
 end
 
 class OttoStrategy< Strategy
-  def win?
-    simBoard = getSim
-    p1 = find(simBoard,[2,1,1,2])
-    p2 = find(simBoard,[1,2,2,1])
-    return p1[0]>=0 || p2[0]>=0
-  end
-
   def win(board)
     p1 = find(board,[1,2,2,1])
     p2 = find(board,[2,1,1,2])
@@ -262,15 +260,15 @@ class OttoStrategy< Strategy
       for col in 0..(Game::WIDTH-1)
       theTop = top(board,col)
         if (top(board,col) > -1)
-          board[theTop][col] = 2
-          if win(board)==2
+          board[theTop][col] = @current_player
+          if win(board)==@current_player
 	    board[theTop][col] = nil
-            return 2, col
+            return @current_player, col
           end
-          board[theTop][col] = 1
-          if win(board)==1
+          board[theTop][col] = @opposing_player
+          if win(board)==@opposing_player
             board[theTop][col] = nil
-            return 1, col
+            return @opposing_player, col
           end  
           board[theTop][col] = nil
 	end
@@ -325,15 +323,15 @@ class C4Strategy < Strategy
     for col in 0..(Game::WIDTH-1)
       theTop = top(board,col)
       if (top(board,col) > -1)
-        board[theTop][col] = 2
+        board[theTop][col] = @current_player
         if win(board)
           board[theTop][col] = nil
-          return 2, col
+          return @current_player, col
         end
-        board[theTop][col] = 1
+        board[theTop][col] = @opposing_player
         if win(board)
           board[theTop][col] = nil
-          return 1, col
+          return @opposing_player, col
         end  
         board[theTop][col] = nil
       end
