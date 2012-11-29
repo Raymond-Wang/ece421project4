@@ -144,14 +144,28 @@ end
 
 class OttoStrategy< Strategy
   def win?
-    p1 = find([2,1,1,2])
-    p2 = find([1,2,2,1])
-    return p1[0]>0 || p2[0]>0
+    simBoard = getSim
+    p1 = find(simBoard,[2,1,1,2])
+    p2 = find(simBoard,[1,2,2,1])
+    return p1[0]>=0 || p2[0]>=0
+  end
+
+  def win(board)
+    p1 = find(board,[1,2,2,1])
+    p2 = find(board,[2,1,1,2])
+    if p1[0]>=0
+	return 1
+    end
+    if p2[0]>=0
+	return 2
+    end
+    return 0
   end
 
   def winner
-    p1 = find([1,2,2,1])
-    p2 = find([2,1,1,2])
+    simBoard = getSim
+    p1 = find(simBoard,[1,2,2,1])
+    p2 = find(simBoard,[2,1,1,2])
     if p1[0]>0 && p2[0]>0
       return DRAW
     end
@@ -171,39 +185,84 @@ class OttoStrategy< Strategy
     a,b,c,d = find([1,2,2,1])
     e,f,g,h = find([2,1,1,2])
     if winner == 1
-      if a>0
+      if a>=0
         return a,b,c,d
       end
     end
     if winner == 2
-      if e>0
+      if e>=0
         return e,f,g,h
       end
     end
     if winner == 3
-      if a>0&&e>0
+      if a>=0&&e>=0
         return a,b,c,d,e,f,g,h
       end
     end
     return -1,-1,-1,-1
   end
 
-  def move
-    for col in 0..(Game::WIDTH-1)
-      if (top(col) > -1)
-        @game.board[top(col)][col] = 2
+  def hasWin(board)
+      for col in 0..(Game::WIDTH-1)
+      theTop = top(board,col)
+        if (top(board,col) > -1)
+          board[theTop][col] = 2
+          if win(board)==2
+	    board[theTop][col] = nil
+            return 2, col
+          end
+          board[theTop][col] = 1
+          if win(board)==1
+            board[theTop][col] = nil
+            return 1, col
+          end  
+          board[theTop][col] = nil
+	end
       end
-      if winner == 2
-        return
-      elsif winner == 1
-        @game.board[top(col)][col] = 1
+      return 0, 0
+  end
+
+  def move
+    simBoard = getSim
+    if @game.difficulty >= MEDIUM
+      winner, col = hasWin(simBoard)
+      if winner > 0
+        return col
       end
     end
+    if @game.difficulty == HARD
+      for col in 0..(Game::WIDTH-1)
+        if(top(simBoard,col) > -1)
+          if(hasAdjacent(simBoard,top(simBoard,col),col,2))
+            simBoard[top(simBoard.col)][col] = 2
+            winner, x = hasWin(simBoard)
+            simBoard[top(simBoard,col)][col] = nil
+            if winner != 1 && rand(1)==1
+              return col
+            end
+          end
+        end
+      end
+    end
+    if @game.difficulty >= MEDIUM
+      for i in 1..10
+        begin 
+          col = rand(6)
+          row = top(simBoard,col)
+        end until row > -1
+        simBoard[row][col] = 2;
+        winner, x = hasWin(simBoard)
+	simBoard[row][col] = nil;
+        if winner != 1
+          return col
+        end
+      end  
+    end
     begin 
-      col = rand(7)
-      row = top(col)
+      col = rand(6)
+      row = top(simBoard,col)
     end until row > -1
-    @game.board[row][col] = 1 + rand(1);
+    return col
   end
 
 end
@@ -213,23 +272,23 @@ class C4Strategy < Strategy
     simBoard = getSim
     p1 = find(simBoard,[1,1,1,1])
     p2 = find(simBoard,[2,2,2,2])
-    return p1[0]>0 || p2[0]>0
+    return p1[0]>=0 || p2[0]>=0
   end
 
   def win(board)
     p1 = find(board,[1,1,1,1])
     p2 = find(board,[2,2,2,2])
-    return p1[0]>0 || p2[0]>0
+    return p1[0]>=0 || p2[0]>=0
   end
 
   def winningMove
     simBoard = getSim
     a,b,c,d = find(simBoard,[1,1,1,1])
-    if a>0
+    if a>=0
       return a,b,c,d
     else
       a,b,c,d = find(simBoard,[2,2,2,2])
-      if a>0
+      if a>=0
         return a,b,c,d
       end
     end
@@ -264,7 +323,7 @@ class C4Strategy < Strategy
         return col
       end
     end
-    if @game.difficulty == 4
+    if @game.difficulty == HARD
       for col in 0..(Game::WIDTH-1)
         if(top(simBoard,col) > -1)
           if(hasAdjacent(simBoard,top(simBoard,col),col,2))
@@ -278,7 +337,7 @@ class C4Strategy < Strategy
         end
       end
     end
-    if @game.difficulty >= 4
+    if @game.difficulty >= MEDIUM
       for i in 1..10
         begin 
           col = rand(6)
