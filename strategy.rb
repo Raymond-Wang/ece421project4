@@ -26,8 +26,6 @@ class Strategy
     # includes the board and stats on players.
     # Strategy might be player quantity dependent for example
     @game = game
-    @current_player = game.currentPlayer + 1
-    @opposing_player = 2 - game.currentPlayer
   end
 
   def getSim
@@ -87,7 +85,7 @@ class Strategy
     for i in 0..(Game::HEIGHT-arr.length)
       for j in 0..(Game::WIDTH-1)
         if vertical(board,i,j,arr)
-          return i,j, i+3,j
+          return i,j,i+3,j
         end
       end
     end
@@ -143,9 +141,8 @@ class Strategy
   end
 
   def move
-    if !moveRemaining?
-      return
-    end
+    @current_player = @game.currentPlayer + 1
+    @opposing_player = 2 - @game.currentPlayer
     simBoard = getSim
     if @game.difficulty >= MEDIUM
       winner, col = hasWin(simBoard)
@@ -153,14 +150,14 @@ class Strategy
         return col
       end
     end
-    if @game.difficulty == HARD
+    if @game.difficulty == HARD + 10
       for col in 0..(Game::WIDTH-1)
         if(top(simBoard,col) > -1)
           if(hasAdjacent(simBoard,top(simBoard,col),col,@current_player))
             simBoard[top(simBoard,col)][col] = @current_player
             winner, x = hasWin(simBoard)
             simBoard[top(simBoard,col)][col] = nil
-            if winner != @opposing_player && rand(1)==1
+            if winner != @opposing_player && rand(2)==1
               return col
             end
           end
@@ -170,7 +167,7 @@ class Strategy
     if @game.difficulty >= MEDIUM
       for i in 1..10
         begin 
-          col = rand(6)
+          col = rand(Game::WIDTH)
           row = top(simBoard,col)
         end until row > -1
         simBoard[row][col] = @current_player;
@@ -182,7 +179,7 @@ class Strategy
       end  
     end
     begin 
-      col = rand(6)
+      col = rand(Game::WIDTH)
       row = top(simBoard,col)
     end until row > -1
     return col
@@ -220,13 +217,13 @@ class OttoStrategy< Strategy
     simBoard = getSim
     p1 = find(simBoard,[1,2,2,1])
     p2 = find(simBoard,[2,1,1,2])
-    if p1[0]>0 && p2[0]>0
+    if p1[0]>=0 && p2[0]>=0
       return DRAW
     end
-    if p1[0]>0
+    if p1[0]>=0
       return P1_WIN
     end
-    if p2[0]>0
+    if p2[0]>=0
       return P2_WIN
     end
     return ONGOING
@@ -257,6 +254,8 @@ class OttoStrategy< Strategy
   end
 
   def hasWin(board)
+    @current_player = @game.currentPlayer + 1
+    @opposing_player = 2 - @game.currentPlayer
       for col in 0..(Game::WIDTH-1)
       theTop = top(board,col)
         if (top(board,col) > -1)
@@ -279,13 +278,6 @@ class OttoStrategy< Strategy
 end
 
 class C4Strategy < Strategy
-  def win?
-    simBoard = getSim
-    p1 = find(simBoard,[1,1,1,1])
-    p2 = find(simBoard,[2,2,2,2])
-    return p1[0]>=0 || p2[0]>=0
-  end
-
   def win(board)
     p1 = find(board,[1,1,1,1])
     p2 = find(board,[2,2,2,2])
@@ -296,10 +288,10 @@ class C4Strategy < Strategy
     simBoard = getSim
     p1 = find(simBoard,[1,1,1,1])
     p2 = find(simBoard,[2,2,2,2])
-    if p1[0]>0
+    if p1[0]>=0
       return P1_WIN
     end
-    if p2[0]>0
+    if p2[0]>=0
       return P2_WIN
     end
     return ONGOING
@@ -320,9 +312,11 @@ class C4Strategy < Strategy
   end
 
   def hasWin(board)
+    @current_player = @game.currentPlayer + 1
+    @opposing_player = 2 - @game.currentPlayer
     for col in 0..(Game::WIDTH-1)
       theTop = top(board,col)
-      if (top(board,col) > -1)
+      if (theTop > -1)
         board[theTop][col] = @current_player
         if win(board)
           board[theTop][col] = nil

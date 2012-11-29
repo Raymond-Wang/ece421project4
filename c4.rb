@@ -58,18 +58,17 @@ class Controller
         @builder.get_object("victorybox").hide()
       end
 
-      @game = Game.new 1
-      @game.players = [Player.new('Player 1', Player::TYPE_HUMAN), Player.new('Computer', Player::TYPE_AI)]
+      @game = Game.new 1,[Player.new('Player 1', Player::TYPE_HUMAN), Player.new('Computer', Player::TYPE_AI)]
+
       # Register observer
       @game.add_observer self, :update
       # Synchronize ui
       @game.sync
 
+      window.show()
       # Buttons disabled initially.
       disable_buttons
       openSettings
-
-      window.show()
       Gtk.main()
     end
   end
@@ -93,15 +92,21 @@ class Controller
 
   def update_completed(state,player)
     if state != Game::ONGOING
-      disable_buttons
       @builder.get_object("victorybox").show()
       if state == Game::DRAW
         @builder.get_object("victoryplayer").set_markup("<span weight=\"bold\" foreground=\"#0097ff\">Game is a draw!</span>")
       else
         @builder.get_object("victoryplayer").set_markup("<span weight=\"bold\" foreground=\"#0097ff\">*#{player.name} has won!</span>")
       end
-    else
+    end
+    toggle_buttons
+  end
+
+  def toggle_buttons
+    if @game.canMove?
       enable_buttons
+    else
+      disable_buttons
     end
   end
 
@@ -137,7 +142,8 @@ class Controller
   end
 
   def update_player(current,player)
-    @builder.get_object("incoming").pixbuf = Gdk::Pixbuf.new(image_for_piece(@game.currentPlayer+1))
+    toggle_buttons
+    @builder.get_object("incoming").pixbuf = Gdk::Pixbuf.new(image_for_piece(current+1))
     @game.players.each_with_index do |player,i|
       label = @builder.get_object("player#{i+1}")
       desc = @builder.get_object("player#{i+1}desc")
@@ -176,6 +182,7 @@ class Controller
   def openSettings
     dialog = @builder.get_object("dialog1")
     dialog.show()
+    dialog.present
     gameCombo = @builder.get_object("GameCombo")
     difficultyCombo = @builder.get_object("DifficultyCombo")
     gameCombo.active=@game.game

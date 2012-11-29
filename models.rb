@@ -56,6 +56,7 @@ class Game < Model
     @board = Array.new(HEIGHT) { Array.new(WIDTH) } 
     # Initialize our strategy
     initStrategy
+    computer_actions
   end
 
   def difficulty=(dif)
@@ -147,14 +148,22 @@ class Game < Model
   end
 
   def computer_actions
-    if @players[@currentPlayer].type == Player::TYPE_AI
-      move = @strategy.move
-      place_tile(move)
+    if @players[@currentPlayer] and @players[@currentPlayer].type == Player::TYPE_AI
+      # Delay ai's move so it appears to think
+      Thread.new do
+        sleep 0.3
+        move = @strategy.move
+        place_tile(move)
+      end
     end
   end
 
   def move
     @strategy.move
+  end
+
+  def canMove?
+    @players[@currentPlayer].type != Player::TYPE_AI and @completed == ONGOING
   end
 
   # col is the 0 indexed column
@@ -174,7 +183,7 @@ class Game < Model
       raise PreconditionError, "Not enough players."
     end
 
-    body = Proc.new do
+    body = lambda do
       if not col.between?(0,WIDTH-1)
         raise PreconditionError, "Column outside of range."
       end
@@ -200,15 +209,20 @@ class Game < Model
 
     initial_turn = @turn
     result = body.call
+
     # Rubyism
     if not !!result == result
       raise PostconditionError, "Result should be boolean."
     else
-      if result and @turn == initial_turn
+      if @completed == Game::ONGOING and result and @turn == initial_turn
         raise PostconditionError, "Turn should have advanced if the tile was placed."
       end
     end
     result
+  end
+
+  def status
+    @strategy.status
   end
 
   # Check and assign completion state by checking with the strategy.
@@ -269,6 +283,8 @@ class Game < Model
     if @currentPlayer != 0
       raise PostconditionError, "Player should be reset."
     end
+    # Let the computer move if necessary.
+    computer_actions
   end
 
   def get_tile(r,c) 
@@ -335,6 +351,15 @@ class Game < Model
   # the top left and increase by one towards the bottom right).
   def indices(i)
     [(i/WIDTH),(i-1) % (WIDTH)]
+  end
+
+  def to_s
+    (0...HEIGHT).each { |r|
+      (0...WIDTH).each { |c|
+        puts "#{@board[r][c].nil? ? '-' : @board[r][c]}"
+      }
+      puts "\n"
+    }
   end
 end
 

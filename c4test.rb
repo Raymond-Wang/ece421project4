@@ -15,8 +15,7 @@ class C4Test < Test::Unit::TestCase
   end
 
   def test_next_turn
-    game = Game.new 1
-    game.players = [@jacob,@raymond]
+    game = Game.new 1, [@jacob,@raymond]
     game.next_turn
     assert_equal 1, game.currentPlayer
     game.next_turn
@@ -27,7 +26,7 @@ class C4Test < Test::Unit::TestCase
 
   # TODO next_tile and others should likely be private.
   def test_next_tile
-    game = Game.new 1
+    game = Game.new 1, [@jacob,@raymond]
     
     h = Game::HEIGHT-1
     assert_equal [h,0], game.next_tile(0)
@@ -43,8 +42,7 @@ class C4Test < Test::Unit::TestCase
   end
 
   def test_place_tile
-    game = Game.new 1
-    game.players = [@jacob,@raymond]
+    game = Game.new 1, [@jacob,@raymond]
     game.instance_eval do
       @strategy = DummyStrategy.new
     end
@@ -61,7 +59,7 @@ class C4Test < Test::Unit::TestCase
   end
 
   def test_indices
-    game = Game.new 1
+    game = Game.new 1, [@jacob,@raymond]
     assert_equal [0,0], game.indices(1)
     assert_equal [0,1], game.indices(2)
     assert_equal [1,0], game.indices(8)
