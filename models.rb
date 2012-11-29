@@ -303,6 +303,14 @@ class Player < Model
 
   def move
   end
+
+  def desc
+    if @type == TYPE_AI
+      return "Computer Opponent"
+    else
+      return "Human"
+    end
+  end
 end
 
 class Move < Model
