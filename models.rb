@@ -219,15 +219,14 @@ class Game < Model
         completed = Game::Draw
       end
     end
-    if completed not Game::ONGOING
+    if completed != Game::ONGOING
       self.completed = completed
     end
-    if status not Game::ONGOING and not self.completed
+    if status != Game::ONGOING and not self.completed
       raise PostconditionError, "Game is no longer ongoing and should be completed."
     end
     self.completed
   end
-  private
 
   # Re-trigger notifications on all object properties.
   def sync
