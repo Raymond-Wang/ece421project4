@@ -59,11 +59,15 @@ class Controller
       end
 
       @game = Game.new 1
-      @game.players = [Player.new('jacob', Player::TYPE_AI), Player.new('raymond', Player::TYPE_AI)]
+      @game.players = [Player.new('Player 1', Player::TYPE_HUMAN), Player.new('Computer', Player::TYPE_AI)]
       # Register observer
       @game.add_observer self, :update
       # Synchronize ui
       @game.sync
+
+      # Buttons disabled initially.
+      disable_buttons
+      openSettings
 
       window.show()
       Gtk.main()
@@ -175,6 +179,12 @@ class Controller
     difficultyCombo = @builder.get_object("DifficultyCombo")
     gameCombo.active=@game.game
     difficultyCombo.active=@game.difficulty
+
+    @builder.get_object("player1name").text = @game.players[0].name
+    @builder.get_object("player2name").text = @game.players[1].name
+
+    @builder.get_object("ai1").active = @game.players[0].type == Player::TYPE_AI 
+    @builder.get_object("ai2").active = @game.players[1].type == Player::TYPE_AI
   end
   private 
 
@@ -183,11 +193,17 @@ class Controller
     difficultyCombo = @builder.get_object("DifficultyCombo")
     game = gameCombo.active
     dif = difficultyCombo.active
-    if game != @game.game or dif != @game.difficulty
-      @game.game = game
-      @game.difficulty = dif
-      @game.reset
-    end
+    @game.game = game
+    @game.difficulty = dif
+    p1name = @builder.get_object("player1name")
+    p2name = @builder.get_object("player2name")
+    p1ai = @builder.get_object("ai1")
+    p2ai = @builder.get_object("ai2")
+    @game.players = [
+      Player.new( p1name.text, p1ai.active? ? Player::TYPE_AI : Player::TYPE_HUMAN ),
+      Player.new( p2name.text, p2ai.active? ? Player::TYPE_AI : Player::TYPE_HUMAN )
+    ]
+    @game.reset
     hideSettings()
   end
   private
