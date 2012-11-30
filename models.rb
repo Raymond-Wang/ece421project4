@@ -1,4 +1,7 @@
 require "observer"
+require 'data_mapper'
+
+require "./init"
 require "./error"
 require "./strategy"
 
@@ -43,7 +46,6 @@ class Game < Model
   # Row 0 is at the top, Col 0 is on the left
   # In Connect 4, '1' is player piece, '2' is computer piece
   # In OTTO TOOT, '1' is O, '2' is T, and computer plays as TOOT
-
   def initialize(dif=2, players=[], game=GAME_C4)
     # Array of all players. Can be modified dynamically as players leave
     # and enter.
@@ -54,7 +56,10 @@ class Game < Model
     self.difficulty = dif
 
     @board = Array.new(HEIGHT) { Array.new(WIDTH) } 
-    # Initialize our strategy
+  end
+
+  # Start the game.
+  def start
     initStrategy
     computer_actions
   end
@@ -363,12 +368,17 @@ class Game < Model
   end
 end
 
+# In contrast to the game model, this one is simple enough to stash.
 class Player < Model
+  include DataMapper::Resource
+
   TYPE_AI = 'AI'
   TYPE_HUMAN = 'HUMAN'
   TYPES = [TYPE_AI,TYPE_HUMAN]
 
-  attr_accessor :type, :name
+  property :id, Serial
+  property :type, String
+  property :name, String
 
   def initialize(name,type)
     if not name.respond_to? :to_s
@@ -378,9 +388,6 @@ class Player < Model
       raise  PreconditionError, "Invalid player type."
     end
     @name, @type = name, type
-  end
-
-  def move
   end
 
   def desc
@@ -399,3 +406,20 @@ class Move < Model
   end
 end
 
+# Because of the complexity of the game model.
+# We don't want to to incorporate model functionality directly.
+# Instead, we'll use this class to stash game state and reload it.
+# This is admittedly, a design smell.
+class GameState
+  include DataMapper::Resource
+
+  property :id, Serial
+  property :board, Object
+  property :currentPlayer, Integer
+  property :difficulty, Integer
+  property :turn, Integer
+  property :completed, Integer
+  has n, :players
+end
+
+DataMapper.auto_upgrade!

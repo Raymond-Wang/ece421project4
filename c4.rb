@@ -1,7 +1,9 @@
 #!/usr/bin/env ruby
 require 'rubygems'
 require 'gtk2'
+require 'data_mapper'
 
+require './init'
 require "./error"
 require "./models"
 #

@@ -1,2 +1,3 @@
 source  "http://rubygems.org"
-gem "datamapper"
+gem "dm-mysql-adapter"
+gem "data_mapper"
