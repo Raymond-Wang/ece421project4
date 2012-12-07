@@ -379,6 +379,7 @@ class Player < Model
   property :id, Serial
   property :type, String
   property :name, String
+  property :elo, Integer
 
   def initialize(name,type)
     if not name.respond_to? :to_s
@@ -416,9 +417,10 @@ class GameState
   property :id, Serial
   property :board, Object
   property :currentPlayer, Integer
-  property :difficulty, Integer
+  # property :difficulty, Integer
   property :turn, Integer
   property :completed, Integer
+  property :gamename, String
   has n, :players
 end
 
