@@ -3,7 +3,7 @@ GEM
   specs:
     addressable (2.2.8)
     bcrypt-ruby (3.0.1)
-    datamapper (1.2.0)
+    data_mapper (1.2.0)
       dm-aggregates (~> 1.2.0)
       dm-constraints (~> 1.2.0)
       dm-core (~> 1.2.0)
@@ -13,14 +13,22 @@ GEM
       dm-transactions (~> 1.2.0)
       dm-types (~> 1.2.0)
       dm-validations (~> 1.2.0)
+    data_objects (0.10.10)
+      addressable (~> 2.1)
     dm-aggregates (1.2.0)
       dm-core (~> 1.2.0)
     dm-constraints (1.2.0)
       dm-core (~> 1.2.0)
     dm-core (1.2.0)
       addressable (~> 2.2.6)
+    dm-do-adapter (1.2.0)
+      data_objects (~> 0.10.6)
+      dm-core (~> 1.2.0)
     dm-migrations (1.2.0)
       dm-core (~> 1.2.0)
+    dm-mysql-adapter (1.2.0)
+      dm-do-adapter (~> 1.2.0)
+      do_mysql (~> 0.10.6)
     dm-serializer (1.2.2)
       dm-core (~> 1.2.0)
       fastercsv (~> 1.5)
@@ -41,6 +49,8 @@ GEM
       uuidtools (~> 2.1)
     dm-validations (1.2.0)
       dm-core (~> 1.2.0)
+    do_mysql (0.10.10)
+      data_objects (= 0.10.10)
     fastercsv (1.5.5)
     json (1.7.5)
     json_pure (1.7.5)
@@ -52,4 +62,5 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  datamapper
+  data_mapper
+  dm-mysql-adapter
