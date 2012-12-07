@@ -19,17 +19,18 @@ class Game < Model
   U_RESET = 3
   U_DIFFICULTY = 4
   U_GAME = 5
-  U_COMPLETED = 6
+  U_state = 6
 
   # Ending states.
-  WIN = 1
-  DRAW = 0
-  ONGOING = nil
-  STATES = [WIN,DRAW,ONGOING]
+  WAITING = 3
+  WIN = 2
+  DRAW = 1
+  ONGOING = 0
+  STATES = [WIN,DRAW,ONGOING,WAITING]
 
   # Game types.
-  GAME_C4 = 0
-  GAME_OTTO = 1
+  GAME_C4 = "Connect 4" 
+  GAME_OTTO = "Otto" 
   GAMES = [GAME_OTTO,GAME_C4]
 
   # Difficulty
@@ -44,80 +45,96 @@ class Game < Model
 
   include DataMapper::Resource
 
+  attr_accessor :client
+
   property :id, Serial
-  property :board, Object
+  property :board, Object, :default => lambda { |r,p| Game.blank_board }
   property :currentPlayer, String
   property :difficulty, Integer
   property :turn, Integer
-  property :completed, Integer
+  property :state, Integer, :default => WAITING
   property :gamename, String
   property :game, String
-  has n, :players
+  has n, :players, :through => Resource
   
-  # Row 0 is at the top, Col 0 is on the left
-  # In Connect 4, '1' is player piece, '2' is computer piece
-  # In OTTO TOOT, '1' is O, '2' is T, and computer plays as TOOT
-  def initialize(*args)
-    super
+  # Useful for testing.
+  def self.blank_board
+    board = Array.new
+    (0...HEIGHT).each do |r|
+      board[r] = Array.new
+      (0...WIDTH).each do |c|
+        board[r][c] = nil
+      end
+    end
   end
 
   # Start the game.
-  def start
-    initStrategy
+  def start(currentPlayer)
+    sync
+    @currentPlayer = currentPlayer
+    @state = ONGOING
+    init_strategy
     computer_actions
   end
 
+  def ready?
+    @state == WAITING || @state == ONGOING and @players.length == 2
+  end
+
   def difficulty=(dif)
-    if not(dif.respond_to?(:between?) and dif.between?(MIN_DIFFICULTY,MAX_DIFFICULTY))
-      raise PreconditionError, 'Invalid difficulty.'
+    precondition do
+      raise "Bad difficulty." unless dif.respond_to?(:between?) and dif.between?(MIN_DIFFICULTY,MAX_DIFFICULTY)
     end
-    @difficulty = dif
+    super
     changed(true)
     notify_observers U_DIFFICULTY, dif
     if not @difficulty == dif
       raise PostconditionError, "Difficulty not set correctly."
     end
+    @difficulty
   end
 
   # The game has been finished.
-  def completed=(state)
+  def state=(state)
     if not STATES.include? state
       raise PreconditionError, "Invalid game victory state."
     end
-    @completed = state
+    super
     changed(true)
-    notify_observers U_COMPLETED, state, @currentPlayer
-    if not @completed == state
+    notify_observers U_state, state, @currentPlayer
+    if not @state == state
       raise PostconditionError, "State not set correctly."
     end
+    @state
   end
 
   def game=(game)
-    if not(GAMES.include? game)
-      raise PreconditionError, "Strategy should be one of #{GAMES.inspect}"
+    precondition do
+      raise "Strategy was not valid." unless GAMES.include? game
     end
-    @game=game
-    initStrategy
+    super
     changed(true)
     notify_observers U_GAME, game
-    if not @game == game
-      raise PostconditionError, "Game type not set correctly."
+    postcondition do
+      raise "Game type not set" unless @game == game
     end
+    @game
   end
 
   def turn=(turn)
     if not turn.kind_of? Numeric
       raise PreconditionError, "Turn is not a number."
     end
-    @turn = turn
+    super
     changed(true)
     notify_observers U_TURN, turn
-    if not @turn == turn
-      raise PostconditionError, "Turn not set correctly."
+    postcondition do
+      raise "Turn not set correctly." unless @turn == turn
     end
   end
   
   def players=(players)
+    Util.biglog "Assigning players"
     precondition do
       if not(players.respond_to? :each)
         raise PreconditionError, 'Players should be an enumerable.'
@@ -129,12 +146,7 @@ class Game < Model
         }
       end
     end
-
-    @players.clear
-    for player in players
-      @players << players
-    end
-
+    super
     postcondition do
       if not @players.length == players.length
         raise PostconditionError, "Players not set correctly."
@@ -144,14 +156,14 @@ class Game < Model
 
   # Somewhat of a factory method for the strategy but 
   # we don't yet require a factory abstraction
-  def initStrategy
+  def init_strategy
     if @game == GAME_C4 
       @strategy = C4Strategy.new self
     elsif @game == GAME_OTTO
       @strategy = OttoStrategy.new self
     end
-    if @strategy.nil?
-      raise PostconditionError, "Strategy not initialized."
+    postcondition do
+      raise "Strategy not initialized." if @strategy.nil?
     end
   end
 
@@ -165,7 +177,7 @@ class Game < Model
   end
 
   def computer_actions
-    if @players[@currentPlayer] and @players[@currentPlayer].type == Player::TYPE_AI
+    @players.reject { |p| p.type != Player::TYPE_AI } .each do
       # Delay ai's move so it appears to think
       Thread.new do
         sleep 0.3
@@ -180,7 +192,7 @@ class Game < Model
   end
 
   def canMove?
-    @players[@currentPlayer].type != Player::TYPE_AI and @completed == ONGOING
+    @players[@currentPlayer].type != Player::TYPE_AI and @state == ONGOING
   end
 
   # col is the 0 indexed column
@@ -196,7 +208,7 @@ class Game < Model
   # Col is 0 indexed
   def place_tile(col)
     precondition do
-      raise "Game is done." unless @completed == Game::ONGOING
+      raise "Game is done." unless @state == Game::ONGOING
       raise "Not enough player." unless @players.length >= MIN_PLAYERS
     end
 
@@ -217,7 +229,7 @@ class Game < Model
       # Sets and checks!
       check_status
 
-      if @completed == Game::ONGOING
+      if @state == Game::ONGOING
         next_turn
       end
 
@@ -232,7 +244,7 @@ class Game < Model
       if not !!result == result
         raise PostconditionError, "Result should be boolean."
       else
-        if @completed == Game::ONGOING and result and @turn == initial_turn
+        if @state == Game::ONGOING and result and @turn == initial_turn
           raise PostconditionError, "Turn should have advanced if the tile was placed."
         end
       end
@@ -250,51 +262,48 @@ class Game < Model
       raise "Strategy is incomplete." unless @strategy.respond_to? :status
     end
     status = @strategy.status
-    completed = Game::ONGOING
+    state = Game::ONGOING
     case status
     when Strategy::P1_WIN
-      completed = Game::WIN
+      state = Game::WIN
     when Strategy::P2_WIN
-      completed = Game::WIN
+      state = Game::WIN
     when Strategy::DRAW
-      completed = Game::DRAW
+      state = Game::DRAW
     else
       if not movesRemaining?
-        completed = Game::DRAW
+        state = Game::DRAW
       else
-        completed = Game::ONGOING
+        state = Game::ONGOING
       end
     end
-    if completed != Game::ONGOING
-      self.completed = completed
+    if state != Game::ONGOING
+      self.state = state
     end
     postcondition do
-      if completed == Game::ONGOING and not movesRemaining?
+      if state == Game::ONGOING and not movesRemaining?
         raise "Game is no longer ongoing and should be completed."
       end
     end
-    @completed
+    @state
   end
 
   # Re-trigger notifications on all object properties.
   def sync
-    # Reassigns all variables as a ghetto way of sending out
-    # signals to all observers.
-    self.turn = @turn
-    self.game = @game
-    self.players = @players
-    self.difficulty = @difficulty
-    self.currentPlayer = @currentPlayer
-    postcondition do 
-      raise "Notifiers should have been sent." unless not changed?
-    end
+    reload
+    # Accesses all variables as a creative way of sending signals.
+    self.turn
+    self.game
+    self.players
+    self.difficulty
+    self.currentPlayer
   end
 
   # Reset the game to the starting turn. Give control to the first player.
   def reset
     self.turn = 1
     self.currentPlayer = 0
-    self.completed = Game::ONGOING
+    self.state = Game::ONGOING
     (0...HEIGHT).each do |r|
       (0...WIDTH).each do |c|
         @board[r][c] = nil
@@ -321,18 +330,18 @@ class Game < Model
 
   # Advance to the next turn and cycle through per-turn actions.
   def next_turn
-    raise PreconditionError, "Game is Done" unless @completed == Game::ONGOING
-    if not @players.length >= MIN_PLAYERS
-      raise PreconditionError, "Not enough players."
+    precondition do
+      raise "Game is not ongoing." unless @state == Game::ONGOING
+      raise "Not enough players" unless @players.length > MIN_PLAYERS
     end
     self.turn = @turn + 1
-    self.currentPlayer = @currentPlayer = (@currentPlayer + 1) % @players.length
+    self.currentPlayer  = @players.find { |p| p != @currentPlayer }
     # Move if necessary.
     computer_actions
   end
 
   def turn=(val)
-    @turn = val
+    super
     changed(true)
     notify_observers U_TURN, @turn
   end
@@ -392,12 +401,12 @@ class Player < Model
   TYPE_HUMAN = 'HUMAN'
   TYPES = [TYPE_AI,TYPE_HUMAN]
 
-  property :id, Serial
   property :type, String
-  property :name, String
+  property :name, String, :key => true
   property :elo, Integer
+  has n, :games, :through => Resource
 
-  def initialize(name,type)
+  def initialize(name,type=TYPE_HUMAN)
     precondition do
       if not name.respond_to? :to_s
         raise "Players name cannot be represented as a string."
@@ -406,6 +415,7 @@ class Player < Model
         raise  "Invalid player type."
       end
     end
+    super name: name, type: type
   end
 
   def desc
@@ -432,4 +442,4 @@ class GameState
 end
 
 DataMapper.finalize
-DataMapper.auto_upgrade!
+DataMapper.auto_migrate!

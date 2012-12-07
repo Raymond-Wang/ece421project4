@@ -7,16 +7,6 @@ require "./dummygame"
 
 Util.debug_conf /.*/
 
-# Some hooks for our tests.
-$test_q = Queue.new
-
-class Game < Model
-  after :save do |o|
-    $test_q << true
-    Util.biglog "SAVED: #{o.id}"
-  end
-end
-
 class ClientServerTest < Test::Unit::TestCase
   def setup
     # For testing I want deterministic ids.
@@ -185,7 +175,6 @@ class ClientServerTest < Test::Unit::TestCase
       server.serve
     end
 
-    jacob = Player.new 'Jacob', Player::TYPE_HUMAN
     james = Player.new 'James', Player::TYPE_HUMAN
     ravi = Player.new 'Ravi', Player::TYPE_HUMAN
     james.save
@@ -194,20 +183,38 @@ class ClientServerTest < Test::Unit::TestCase
     game = Game.create
     game.players << james
     game.players << ravi
+
+    # Change this after on purpose.
+    game.game = Game::GAME_C4
     game.save
+    
+    assert_equal 1, game.id
+    assert_equal Game::GAME_C4, game.game
 
-    binding.pry
-
-    c_jacob = Client.new jacob, ip, 50500
+    #c_jacob = Client.new jacob, ip, 50500
     c_james = Client.new james, ip, 50500
     c_ravi = Client.new ravi, ip, 50500
 
     c_ravi.join game.id
+    assert_equal Game::WAITING, c_ravi.game.state
+    assert_equal Game::GAME_C4, c_ravi.game.game
+    assert_equal 1, c_ravi.game.id
+    
     c_james.join game.id
+    assert_equal Game::GAME_C4, c_james.game.game
+
+    # Wait for clients to sync
+    sleep 2
+
+    assert_equal Game::ONGOING, c_ravi.game.state
 
     assert_equal 1, game.id
     assert_equal game.id, c_ravi.game.id
     assert_equal game.id, c_james.game.id
+
+    assert_equal Game.blank_board, c_ravi.game.board
+    assert_equal Game.blank_board, c_james.game.board
+    assert_equal "Ravi", c_james.game.currentPlayer
   end
 
 end

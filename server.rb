@@ -46,20 +46,34 @@ end
 # We use to communicate game updates with each player who should be running
 # their own xmlrpc server.
 class ClientChannel
-  attr_accessor :player, :host, :port, :out
+  attr_accessor :player, :host, :port, :out, :ready
   def initialize(player, host, port)
     @player, @host, @port = player, host, port
-    @out = XMLRPC::Client.new host, "/", port
+
+    # Some mechanisms for robustness.
+    @sem = Mutex.new
+    @receipt = 1
+    @history = []
+
+    # Don't block.
+    Thread.new do
+      @out = XMLRPC::Client.new host, "/", port
+    end
+
+    # Doesn't quite fit. Client is read to start the game.
+    @ready = false
   end
 
   def method_missing(m, *args, &block)
-    @out.call_async "game.#{m}", *args
-  end
-end
-
-class GameConnection
-  def initialize
-    @channels
+    @sem.synchronize do
+      @receipt = @receipt + 1
+      @args.unshift @receipt
+      if @history.length > 10
+        @history.slice!(0)
+      end
+      @history <<  { receipt: receipt,  method: m, args: args}
+    end
+    @out.call2_async "gameclient.#{m}", *args
   end
 end
 
@@ -73,6 +87,7 @@ class GameServer
     @host = host
     @port = port
     @game = game
+
     @server = XMLRPC::Server.new @port, @host
 
     # Because we can't pend for events on the RPC
@@ -83,9 +98,12 @@ class GameServer
     @server.add_handler "game", @proxy 
 
     # Store our connected clients here.
-    @channels = []
-    
-    @game = DummyGame.new
+    @channels = Hash.new 
+
+    # Use one Mutex per server for a few critical sections.
+    # It's not the most effecient means of doing it - we could likely
+    # have a more granular configuration.
+    @sem = Mutex.new
   end
 
   def serve
@@ -96,68 +114,77 @@ class GameServer
   # Acknowledges a new player with a corresponding service running
   # on their port.
   def greet(player,host,port)
-    begin
-      @channels << ClientChannel.new(player, host, port)
-      @game.add_player player
-      notify_player player, player
-    rescue
-      # TODO Check for exceptions.
-      return false
+    player = Player.first_or_create(name: player)
+    # Don't allow multiple connections from the same name.
+    @sem.synchronize do
+      # TODO Already exists.
+      if @channels.has_key? player.name then return false end
+      begin
+        @channels[player.name] = ClientChannel.new(player.name, host, port)
+      rescue
+        # TODO Check for exceptions.
+        return false
+      end
     end
     return true
   end
 
-  def start(player)
-    @game.start player
-    notify_start player
-  end
-
-  def place_tile(player, col)
-    @game.place_tile col
-    notify_place_tile col, player
-  end
-
   def create(player, game_type)
     game = Game.create game: game_type
+    game.players << Player.first_or_create(name: player)
     game.save 
+    @channels[player].ready = true
     return game.id
   end
 
   def join(player,id)
+    Util.biglog "Player: #{player} is joining..."
     game = Game.get(id)
+    player = Player.first_or_create name: player
+
+    # Rejoining our own game?
+    if not game.players.include? player
+      # Ensure we don't let more than 2 players squeeze in.
+      @sem.synchronize do
+        if game.players and game.players.length >= 2
+          Util.debug "Too many players in the game."
+          return false
+        end
+        game.players <<  player
+      end
+    end
+    @channels[player.name].ready = true
     return game.id
   end
 
-  def notify_start(player)
-    with_channels do |channel|
-      channel.notify_start player
+  def ready? game
+    game.players.all? do |player|
+      @channels[player.name].ready
+    end
+  end
+
+  # These handle communications between clients.
+  def notify_start(game)
+    Util.biglog "Game is Starting"
+    # This is bizarre. The async calls inside of clientchannel shouldn't block.
+    # But they do. Nightmareish deadlock issue there.
+    Thread.new do
+      game.players.each do |player|
+        @channels[player.name].notify_start(game.currentPlayer)
+      end
     end
   end
 
   def notify_turn(turn,except=nil)
-    with_channels except do |channel|
-      channel.notify_turn turn
-    end
   end
 
   def notify_place_tile(col,except=nil)
-    with_channels except do |channel|
-      #TODO check return values from client.
-      channel.notify_place_tile col
-    end
   end
 
   def notify_player(player,except=nil)
-    Util.debug "calling notify_player"
-    with_channels except do |channel|
-      channel.notify_player player
-    end
   end
 
-  def with_channels(except=nil)
-    @channels.reject { |c| c.player == except }.each do |channel|
-      yield channel
-    end
+  def with_channels(having=nil)
   end
 
 end

@@ -5,6 +5,7 @@ require "./util"
 require "./dummygame"
 
 
+
 # Receives updates from the game server.
 class ClientProxy
   def initialize(client)
@@ -24,18 +25,18 @@ class ClientProxy
   end
   
   def notify_start(player)
-    @client.game.start player
+    @client.start player
     true
   end
 end
 
 class Client
-  # 3 seconds should be plenty locally
-  TIMEOUT = 3
+  TIMEOUT = 1000 
 
   attr_accessor :game
 
   def initialize(player,host,port)
+    @q = Queue.new
     @host, @port, @player = host, port, player
     @myhost = Util.get_ip
 
@@ -44,12 +45,13 @@ class Client
     @out = XMLRPC::Client.new @host, "/", @port
     @out.timeout=Client::TIMEOUT
 
-    @proxy = ClientProxy.new self
+    @proxy = ClientProxy.new(self)
+
     # Rertry until success
     @myport = Util.port_retry do |port|
       @in = XMLRPC::Server.new port, @myhost
       Util.biglog "Client server: #{@myhost}:#{port}"
-      @in.add_handler "game", @proxy
+      @in.add_handler "gameclient", @proxy
     end
 
     if @myport.nil? or @in.nil?
@@ -61,11 +63,17 @@ class Client
   end
 
   def serve
-    @thread = Thread.new do
+    Thread.new do
       @in.serve
     end
   end
   private :serve
+
+  def start(player)
+    # Need to wait for a game join.
+    @q.pop
+    @game.start player
+  end
 
   def greet
     rpc "greet", @myhost, @myport
@@ -79,6 +87,8 @@ class Client
     end
 
     id = rpc "create", game_type 
+
+    @q << id
     @game = Game.get(id)
 
     postcondition do
@@ -92,10 +102,13 @@ class Client
     end
 
     id = rpc "join", id  
+
+    @q << id
     @game = Game.get(id)
 
     postcondition do
       raise if not(@game.id)
+      raise if @q.size > 1
     end
   end
 
@@ -109,7 +122,7 @@ class Client
   end
 
   def rpc(m,*args)
-    @out.call "game.#{m}", @player.to_s, *args
+    @out.call "game.#{m}", @player.name, *args
   end
 
 end
