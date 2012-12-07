@@ -193,7 +193,9 @@ class ClientServerTest < Test::Unit::TestCase
 
     #c_jacob = Client.new jacob, ip, 50500
     c_james = Client.new james, ip, 50500
+    c_james.greet
     c_ravi = Client.new ravi, ip, 50500
+    c_ravi.greet
 
     c_ravi.join game.id
     assert_equal Game::WAITING, c_ravi.game.state

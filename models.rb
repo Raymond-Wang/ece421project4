@@ -19,7 +19,7 @@ class Game < Model
   U_RESET = 3
   U_DIFFICULTY = 4
   U_GAME = 5
-  U_state = 6
+  U_COMPLETED = 6
 
   # Ending states.
   WAITING = 3
@@ -29,8 +29,8 @@ class Game < Model
   STATES = [WIN,DRAW,ONGOING,WAITING]
 
   # Game types.
-  GAME_C4 = "Connect 4" 
-  GAME_OTTO = "Otto" 
+  GAME_C4 = 0
+  GAME_OTTO = 1
   GAMES = [GAME_OTTO,GAME_C4]
 
   # Difficulty
@@ -49,12 +49,12 @@ class Game < Model
 
   property :id, Serial
   property :board, Object, :default => lambda { |r,p| Game.blank_board }
-  property :currentPlayer, String
-  property :difficulty, Integer
-  property :turn, Integer
+  property :currentPlayer, String 
+  property :difficulty, Integer, :default => 0
+  property :turn, Integer, :default => 1
   property :state, Integer, :default => WAITING
-  property :gamename, String
-  property :game, String
+  property :gamename, String, :default => "Brand Spanking New"
+  property :game, Integer, :default => GAME_C4
   has n, :players, :through => Resource
   
   # Useful for testing.
@@ -66,6 +66,7 @@ class Game < Model
         board[r][c] = nil
       end
     end
+    board
   end
 
   # Start the game.
@@ -242,10 +243,10 @@ class Game < Model
     postcondition do
       # Rubyism
       if not !!result == result
-        raise PostconditionError, "Result should be boolean."
+        raise "Result should be boolean."
       else
         if @state == Game::ONGOING and result and @turn == initial_turn
-          raise PostconditionError, "Turn should have advanced if the tile was placed."
+          raise "Turn should have advanced if the tile was placed."
         end
       end
     end
@@ -304,6 +305,7 @@ class Game < Model
     self.turn = 1
     self.currentPlayer = 0
     self.state = Game::ONGOING
+    self.board # Triggers default value if necessary.
     (0...HEIGHT).each do |r|
       (0...WIDTH).each do |c|
         @board[r][c] = nil

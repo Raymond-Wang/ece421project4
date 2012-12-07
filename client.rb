@@ -1,4 +1,5 @@
 require "xmlrpc/client"
+require "xmlrpc/server"
 require "socket"
 
 require "./util"
@@ -35,7 +36,7 @@ class Client
 
   attr_accessor :game
 
-  def initialize(player,host,port)
+  def initialize(player,host,port,timeout=Client::TIMEOUT)
     @q = Queue.new
     @host, @port, @player = host, port, player
     @myhost = Util.get_ip
@@ -59,7 +60,6 @@ class Client
     else
       serve
     end
-    greet
   end
 
   def serve

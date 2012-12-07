@@ -99,10 +99,10 @@ class Controller
         @ui["victorybox"].hide()
       end
 
-      @game = Game.new 1,[Player.new('Player 1', Player::TYPE_HUMAN), Player.new('Computer', Player::TYPE_AI)]
+      @game = Game.new 
 
       # Register observer
-      @game.add_observer self, :update
+      @game.add_observer self, :notify
       # Synchronize ui
       @game.sync
 
@@ -134,24 +134,24 @@ class Controller
     end
   end
 
-  def update(what,*args)
+  def notify(what,*args)
     case what
     when Game::U_BOARD
-      update_board *args
+      notify_board *args
     when Game::U_RESET
       reset_board *args
     when Game::U_PLAYER
-      update_player *args
+      notify_player *args
     when Game::U_TURN
-      update_turn *args
+      notify_turn *args
     when Game::U_GAME
-      update_game *args
+      notify_game *args
     when Game::U_COMPLETED
-      update_completed *args
+      notify_completed *args
     end
   end
 
-  def update_completed(state,player)
+  def notify_completed(state,player)
     if state != Game::ONGOING
       @ui["victorybox"].show()
       if state == Game::DRAW
@@ -183,16 +183,16 @@ class Controller
     }
   end
 
-  def update_board(row,col,piece)
+  def notify_board(row,col,piece)
     i = col + ((row)*Game::WIDTH) + 1
     @builder.get_object("image#{i}").pixbuf = Gdk::Pixbuf.new(image_for_piece(piece))
   end
 
-  def update_turn(turn)
+  def notify_turn(turn)
     @builder.get_object("turn").text = "Turn: #{turn}" 
   end
 
-  def update_game(game)
+  def notify_game(game)
     case game
     when Game::GAME_OTTO
       label = "Game Type: Otto"
@@ -202,7 +202,7 @@ class Controller
     @builder.get_object("game_type").text = label
   end
 
-  def update_player(current,player)
+  def notify_player(current,player)
     toggle_buttons
     @builder.get_object("incoming").pixbuf = Gdk::Pixbuf.new(image_for_piece(current+1))
     @game.players.each_with_index do |player,i|
@@ -248,15 +248,39 @@ class Controller
     gameCombo.active=@game.game
     difficultyCombo.active=@game.difficulty
 
-    @ui["player1name"].text = @game.players[0].name
-    @ui["player2name"].text = @game.players[1].name
+    if @game.players.length > 0 
+      @ui["player1name"].text = @game.players[0].name
+      @ui["ai1"].active = @game.players[0].type == Player::TYPE_AI 
+    end
+    if @game.players.length > 1
+      @ui["player2name"].text = @game.players[1].name
+      @ui["ai2"].active = @game.players[1].type == Player::TYPE_AI
+    end
 
-    @ui["ai1"].active = @game.players[0].type == Player::TYPE_AI 
-    @ui["ai2"].active = @game.players[1].type == Player::TYPE_AI
     @ui['host'].text = "192.168.2.1"
     @ui['port'].text = "50560"
   end
   private 
+
+  def validate_solo
+    errors = []
+    if not @ui["player1name"].text.strip.length > 0
+      if not @ui["ui2"].active?
+        errors << "Player 1 must have a name."
+      end
+    end
+    if not @ui["player2name"].text.strip.length > 0
+      if not @ui["ui2"].active?
+        errors << "Player 1 must have a name."
+      end
+    end
+    if errors.length > 0
+      error_dialog errors do
+        @ui['dialog1'].present
+      end
+    end
+    errors.length == 0
+  end
 
   def validate_network
     errors = []
@@ -311,6 +335,7 @@ class Controller
   end
 
   def begin_solo
+    return unless validate_network
     @game.game = @ui["GameCombo"].active
     @game.difficulty = @ui["DifficultyCombo"].active
     p1name = @ui["player1name"]
@@ -320,6 +345,7 @@ class Controller
     @game.players << create_player(p2name.text, p2ai.active?)
     @game.players << create_player(p1name.text, p1ai.active?)
     @game.reset
+    @game.start
   end
 
   def create_player(name, ai)
