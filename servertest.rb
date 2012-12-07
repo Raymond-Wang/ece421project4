@@ -121,4 +121,42 @@ class ClientServerTest < Test::Unit::TestCase
     assert_equal "ray", jacob.game.currentPlayer
     assert_equal "ray", server.game.currentPlayer
   end
+
+  def test_server_live_model
+    jacob = Player.new 'Jacob', Player::TYPE_HUMAN
+    raymond = Player.new 'Raymond', Player::TYPE_HUMAN
+    jacob.save
+    raymond.save
+
+    game = Game.new 1, [jacob,raymond]
+    game.save
+
+    james = Player.new 'James', Player::TYPE_HUMAN
+    ravi = Player.new 'Ravi', Player::TYPE_HUMAN
+    james.save
+    ravi.save
+
+    game2 = Game.new 1, [james,ravi]
+    game2.save
+
+    ip = Util.get_ip
+
+    server = nil
+    t_server = Thread.new do
+      server = GameServer.new game, 50500, ip
+    end
+
+    jacob, ray = nil, nil
+    t_jacob = Thread.new do
+      jacob = Client.new g_jacob, "jacob", ip, 50500
+    end
+
+    t_ray = Thread.new do
+      ray = Client.new g_ray, "ray", ip, 50500
+    end
+
+    t_server.join
+    t_jacob.join
+    t_ray.join
+  end
 end

@@ -49,10 +49,16 @@ class ClientChannel
   end
 end
 
+class GameConnection
+  def initialize
+    @channels
+  end
+end
+
 class GameServer
   attr_accessor :game
 
-  def initialize(game, port, ip=Util.get_ip)
+  def initialize(port, ip=Util.get_ip)
     @port = port
     @game = game
     @server = XMLRPC::Server.new @port, ip

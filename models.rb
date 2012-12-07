@@ -1,6 +1,8 @@
 require "observer"
 require 'data_mapper'
+require "pry"
 
+require "./contracts"
 require "./init"
 require "./error"
 require "./strategy"
@@ -39,23 +41,33 @@ class Game < Model
   WIDTH = 7
 
   MIN_PLAYERS = 2
-  
-  attr_accessor :game, :difficulty, :currentPlayer, :board
-  attr_reader :players, :completed, :turn
 
+  include DataMapper::Resource
+
+  property :id, Serial
+  property :board, Object
+  property :currentPlayer, Integer
+  # property :difficulty, Integer
+  property :turn, Integer
+  property :completed, Integer
+  property :gamename, String
+  has n, :players
+  
   # Row 0 is at the top, Col 0 is on the left
   # In Connect 4, '1' is player piece, '2' is computer piece
   # In OTTO TOOT, '1' is O, '2' is T, and computer plays as TOOT
   def initialize(dif=2, players=[], game=GAME_C4)
+    super nil
     # Array of all players. Can be modified dynamically as players leave
     # and enter.
-    self.players = players 
+    for player in players
+      self.players << player
+    end
     self.currentPlayer = 0
     self.game = game 
     self.turn = 1
     self.difficulty = dif
-
-    @board = Array.new(HEIGHT) { Array.new(WIDTH) } 
+    self.board = Array.new(HEIGHT) { Array.new(WIDTH) } 
   end
 
   # Start the game.
@@ -382,13 +394,15 @@ class Player < Model
   property :elo, Integer
 
   def initialize(name,type)
-    if not name.respond_to? :to_s
-      raise PreconditionError, "Players name cannot be represented as a string."
+    precondition do
+      if not name.respond_to? :to_s
+        raise "Players name cannot be represented as a string."
+      end
+      if not TYPES.include? type
+        raise  "Invalid player type."
+      end
     end
-    if not TYPES.include? type
-      raise  PreconditionError, "Invalid player type."
-    end
-    @name, @type = name, type
+    super name: name, type: type
   end
 
   def desc
@@ -412,16 +426,7 @@ end
 # Instead, we'll use this class to stash game state and reload it.
 # This is admittedly, a design smell.
 class GameState
-  include DataMapper::Resource
-
-  property :id, Serial
-  property :board, Object
-  property :currentPlayer, Integer
-  # property :difficulty, Integer
-  property :turn, Integer
-  property :completed, Integer
-  property :gamename, String
-  has n, :players
 end
 
+DataMapper.finalize
 DataMapper.auto_upgrade!

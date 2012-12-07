@@ -41,3 +41,4 @@ module Util
     @flags = args
   end
 end
+
