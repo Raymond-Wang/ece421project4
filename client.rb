@@ -92,10 +92,7 @@ class Client
     end
 
     id = rpc "join", id  
-    Util.biglog "Joining #{id}"
     @game = Game.get(id)
-
-    Util.biglog "Joined #{@game}"
 
     postcondition do
       raise if not(@game.id)
@@ -112,9 +109,7 @@ class Client
   end
 
   def rpc(m,*args)
-    Util.log m, *args
     @out.call "game.#{m}", @player.to_s, *args
-    Util.log m+" done"
   end
 
 end

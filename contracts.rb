@@ -29,7 +29,7 @@ module Contracts
         yield
       rescue Exception => e
         check_pry
-        raise PostConditionError, "Postcondition Failed:" + e.message, e.backtrace 
+        raise PostconditionError, "Postcondition Failed:" + e.message, e.backtrace 
       end
     end
   end
