@@ -2,11 +2,30 @@ require "test/unit"
 require "./server"
 require "./client"
 require "./util"
+require "./models"
 require "./dummygame"
 
 Util.debug_conf /.*/
 
+# Some hooks for our tests.
+$test_q = Queue.new
+
+class Game < Model
+  after :save do |o|
+    $test_q << true
+    Util.biglog "SAVED: #{o.id}"
+  end
+end
+
 class ClientServerTest < Test::Unit::TestCase
+  def setup
+    # For testing I want deterministic ids.
+    DataMapper.repository(:default).adapter.execute('SET FOREIGN_KEY_CHECKS = 0')
+    DataMapper.repository(:default).adapter.execute('TRUNCATE TABLE `players`')
+    DataMapper.repository(:default).adapter.execute('TRUNCATE TABLE `games`')
+    DataMapper.repository(:default).adapter.execute('SET FOREIGN_KEY_CHECKS = 1')
+  end
+
   def test_simple
     ip = Util.get_ip
     game = DummyGame.new
@@ -14,6 +33,9 @@ class ClientServerTest < Test::Unit::TestCase
 
     Util.debug "Gamserver"
     server = GameServer.new game, 1234
+    Thread.new do
+      server.serve
+    end
     sleep 0.2
     Util.debug "Client"
     clientA = Client.new g_jacob, "jacob", ip, 1234
@@ -29,8 +51,10 @@ class ClientServerTest < Test::Unit::TestCase
     g_jacob = DummyGame.new
     g_ray = DummyGame.new
 
+    server = GameServer.new 2000, ip
+
     Thread.new do
-      gameserver = GameServer.new game, ip 
+      server.serve
     end
 
     log = []
@@ -43,7 +67,7 @@ class ClientServerTest < Test::Unit::TestCase
     start = Time.now
 
     last = Thread.new do
-      clientA = Client.new g_jacob, "jacob", ip, 2000
+      clientA = Client.new "jacob", ip, 2000
       clientA.wait 3
       sem.synchronize do
         log.push "Client A"
@@ -74,9 +98,9 @@ class ClientServerTest < Test::Unit::TestCase
     g_jacob = DummyGame.new
     g_ray = DummyGame.new
 
-    server = nil
-    t_server = Thread.new do
-      server = GameServer.new game, 50500, ip
+    server = GameServer.new 50500, ip
+    Thread.new do
+      server.serve
     end
 
     jacob, ray = nil, nil
@@ -88,7 +112,6 @@ class ClientServerTest < Test::Unit::TestCase
       ray = Client.new g_ray, "ray", ip, 50500
     end
 
-    t_server.join
     t_jacob.join
     t_ray.join
 
@@ -128,35 +151,63 @@ class ClientServerTest < Test::Unit::TestCase
     jacob.save
     raymond.save
 
-    game = Game.new 1, [jacob,raymond]
-    game.save
+    ip = Util.get_ip
 
+    server = GameServer.new 50500, ip
+    Thread.new do
+      server.serve
+    end
+
+    jacob, ray = nil, nil
+    c_jacob = Client.new "jacob", ip, 50500
+    c_ray = Client.new "ray", ip, 50500
+
+    # Create a game on the server.
+    c_jacob.join -1 
+  end
+
+  def test_new_game
+    ip = Util.get_ip
+    server = GameServer.new 50500, ip
+    Thread.new do
+      server.serve
+    end
+
+    c_jacob = Client.new "jacob", ip, 50500
+    c_jacob.create Game::GAME_OTTO
+    assert_equal true, test_q.pop
+  end
+
+  def test_existing
+    ip = Util.get_ip
+    server = GameServer.new 50500, ip
+    Thread.new do
+      server.serve
+    end
+
+    jacob = Player.new 'Jacob', Player::TYPE_HUMAN
     james = Player.new 'James', Player::TYPE_HUMAN
     ravi = Player.new 'Ravi', Player::TYPE_HUMAN
     james.save
     ravi.save
 
-    game2 = Game.new 1, [james,ravi]
-    game2.save
+    game = Game.create
+    game.players << james
+    game.players << ravi
+    game.save
 
-    ip = Util.get_ip
+    binding.pry
 
-    server = nil
-    t_server = Thread.new do
-      server = GameServer.new game, 50500, ip
-    end
+    c_jacob = Client.new jacob, ip, 50500
+    c_james = Client.new james, ip, 50500
+    c_ravi = Client.new ravi, ip, 50500
 
-    jacob, ray = nil, nil
-    t_jacob = Thread.new do
-      jacob = Client.new g_jacob, "jacob", ip, 50500
-    end
+    c_ravi.join game.id
+    c_james.join game.id
 
-    t_ray = Thread.new do
-      ray = Client.new g_ray, "ray", ip, 50500
-    end
-
-    t_server.join
-    t_jacob.join
-    t_ray.join
+    assert_equal 1, game.id
+    assert_equal game.id, c_ravi.game.id
+    assert_equal game.id, c_james.game.id
   end
+
 end

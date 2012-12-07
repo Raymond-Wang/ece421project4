@@ -26,8 +26,16 @@ class GameProxy
     time
   end
 
-  def greet(player,hostname,service_port)
-    @gameserver.greet player, hostname, service_port
+  def greet(player,host,service_port)
+    @gameserver.greet player, host, service_port
+  end
+
+  def join(player,id)
+    @gameserver.join player, id 
+  end
+
+  def create(player,game_type)
+    @gameserver.create player, id, game_type
   end
 end
 
@@ -58,10 +66,14 @@ end
 class GameServer
   attr_accessor :game
 
-  def initialize(port, ip=Util.get_ip)
+  # Exposed so we can join the thread.
+  attr_reader :thread
+
+  def initialize(port, host=Util.get_ip)
+    @host = host
     @port = port
     @game = game
-    @server = XMLRPC::Server.new @port, ip
+    @server = XMLRPC::Server.new @port, @host
 
     # Because we can't pend for events on the RPC
     # server without resorting to bad long polling hacks
@@ -70,15 +82,15 @@ class GameServer
     @proxy = GameProxy.new self 
     @server.add_handler "game", @proxy 
 
-    server = @server
-    @thread = Thread.new do
-      server.serve
-    end
-
     # Store our connected clients here.
     @channels = []
     
     @game = DummyGame.new
+  end
+
+  def serve
+    @server.serve
+    Util.biglog "Server running on #{@host}:#{@ip}"
   end
 
   # Acknowledges a new player with a corresponding service running
@@ -103,6 +115,17 @@ class GameServer
   def place_tile(player, col)
     @game.place_tile col
     notify_place_tile col, player
+  end
+
+  def create(player, game_type)
+    game = Game.create game: game_type
+    game.save 
+    return game.id
+  end
+
+  def join(player,id)
+    game = Game.get(id)
+    return game.id
   end
 
   def notify_start(player)

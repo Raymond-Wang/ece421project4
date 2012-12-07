@@ -2,12 +2,24 @@
 require 'rubygems'
 require 'gtk2'
 require 'data_mapper'
+require "pry"
 
 require './init'
 require "./error"
 require "./models"
-#
-# The builder is our view in this case.
+require "./client"
+
+# Nicer access for our objects
+class UI
+  def initialize(builder)
+    @builder = builder
+  end
+
+  def [](k)
+    @builder.get_object(k)
+  end
+end
+
 class Controller
   attr :glade
 
@@ -19,45 +31,72 @@ class Controller
       @builder.connect_signals{ |handler| method(handler) }
 
       # Destroying the window will terminate the program
-      window = @builder.get_object("window1")
-      window.signal_connect( "destroy" ) { quit }
+      @window = @builder.get_object("window1")
+      @window.signal_connect( "destroy" ) { quit }
+      
+      @ui = UI.new @builder
 
       # The 'Quit' button will terminate the program
-      menu = @builder.get_object("Quit")
+      menu = @ui["Quit"]
       menu.signal_connect( "activate" ) { quit }
 
       # The 'New' button will start a new game
-      menu = @builder.get_object("New")
+      menu = @ui["New"]
       menu.signal_connect( "activate" ) { @game.reset }
 
       # The 'Settings' button will open a new window called settings
-      settings = @builder.get_object("Settings")
-      settings.signal_connect( "activate" ) { openSettings() }
+      settings = @ui["Settings"]
+      settings.signal_connect( "activate" ) { open_settings }
 
       # The 'Settings' button will open a new window called settings
-      about = @builder.get_object("About")
+      about = @ui["About"]
       about.signal_connect( "activate" ) { openAbout() }
 
+      # Keep it from destroying the dialog.
+      @ui["dialog1"].signal_connect("delete_event"){ @ui["dialog1"].hide }
+
       # The 'OK' button in Settings will save the settings and close the window
-      settingsOK = @builder.get_object("SettingsOK")
-      settingsOK.signal_connect( "clicked" ) { saveSettings() }
+      settingsOK = @ui["SettingsOK"]
+      settingsOK.signal_connect( "clicked" ) { save_settings }
 
       # The 'Cancel' button in Settings will negate any changes to the settings and close the window
-      settingsCancel = @builder.get_object("SettingsCancel")
-      settingsCancel.signal_connect( "clicked" ) { hideSettings() }
+      settingsCancel = @ui["SettingsCancel"]
+      settingsCancel.signal_connect( "clicked" ) { hide_settings }
 
       # Attach a signal to each button
       1.upto(Game::WIDTH) { |i| 
-        @builder.get_object("button" + i.to_s).signal_connect("clicked") {button_clicked(i)};
+        @ui["button" + i.to_s].signal_connect("clicked") { button_clicked(i) }
       }
 
-      victoryQuit = @builder.get_object("victoryquit").signal_connect("clicked") do
+      victoryQuit = @ui["victoryquit"].signal_connect("clicked") do
         quit
       end
+      
+      # The 'Cancel' button in Settings will negate any changes to the settings and close the window
+      @network = @builder.get_object("network")
+      @network.signal_connect( "clicked" ) do
+        if @network.active?
+          network_enable
+        else
+          network_disable
+        end
+      end
 
-      victoryNew = @builder.get_object("victorynew").signal_connect("clicked") do
+      @local_specific = {
+        ai2: @ui["ai2"],
+        player2name: @ui["player2name"]
+      }
+      
+      @network_specific =  {
+        host: @ui["host"],
+        port: @ui["port"]
+      }
+
+      network_disable
+
+      victoryNew = @ui["victorynew"].signal_connect("clicked") do
         @game.reset
-        @builder.get_object("victorybox").hide()
+        @ui["victorybox"].hide()
       end
 
       @game = Game.new 1,[Player.new('Player 1', Player::TYPE_HUMAN), Player.new('Computer', Player::TYPE_AI)]
@@ -67,11 +106,31 @@ class Controller
       # Synchronize ui
       @game.sync
 
-      window.show()
-      # Buttons disabled initially.
       disable_buttons
-      openSettings
+      @window.show
+      open_settings
+      # Buttons disabled initially.
       Gtk.main()
+    end
+  end
+  
+  def network_enable
+    @network.active = true
+    @network_specific.each do |k,o|
+      o.sensitive = true
+    end
+    @local_specific.each do |k,o|
+      o.sensitive = false
+    end
+  end
+
+  def network_disable
+    @network.active = false
+    @network_specific.each do |k,o|
+      o.sensitive = false
+    end
+    @local_specific.each do |k,o|
+      o.sensitive = true
     end
   end
 
@@ -94,11 +153,11 @@ class Controller
 
   def update_completed(state,player)
     if state != Game::ONGOING
-      @builder.get_object("victorybox").show()
+      @ui["victorybox"].show()
       if state == Game::DRAW
-        @builder.get_object("victoryplayer").set_markup("<span weight=\"bold\" foreground=\"#0097ff\">Game is a draw!</span>")
+        @ui["victoryplayer"].set_markup("<span weight=\"bold\" foreground=\"#0097ff\">Game is a draw!</span>")
       else
-        @builder.get_object("victoryplayer").set_markup("<span weight=\"bold\" foreground=\"#0097ff\">*#{player.name} has won!</span>")
+        @ui["victoryplayer"].set_markup("<span weight=\"bold\" foreground=\"#0097ff\">*#{player.name} has won!</span>")
       end
     end
     toggle_buttons
@@ -180,47 +239,112 @@ class Controller
   end
   private 
 
-
-  def openSettings
-    dialog = @builder.get_object("dialog1")
-    dialog.show()
+  def open_settings
+    dialog = @ui["dialog1"]
+    dialog.show
     dialog.present
-    gameCombo = @builder.get_object("GameCombo")
-    difficultyCombo = @builder.get_object("DifficultyCombo")
+    gameCombo = @ui["GameCombo"]
+    difficultyCombo = @ui["DifficultyCombo"]
     gameCombo.active=@game.game
     difficultyCombo.active=@game.difficulty
 
-    @builder.get_object("player1name").text = @game.players[0].name
-    @builder.get_object("player2name").text = @game.players[1].name
+    @ui["player1name"].text = @game.players[0].name
+    @ui["player2name"].text = @game.players[1].name
 
-    @builder.get_object("ai1").active = @game.players[0].type == Player::TYPE_AI 
-    @builder.get_object("ai2").active = @game.players[1].type == Player::TYPE_AI
+    @ui["ai1"].active = @game.players[0].type == Player::TYPE_AI 
+    @ui["ai2"].active = @game.players[1].type == Player::TYPE_AI
+    @ui['host'].text = "192.168.2.1"
+    @ui['port'].text = "50560"
   end
   private 
 
-  def saveSettings
-    gameCombo = @builder.get_object("GameCombo")
-    difficultyCombo = @builder.get_object("DifficultyCombo")
-    game = gameCombo.active
-    dif = difficultyCombo.active
-    @game.game = game
-    @game.difficulty = dif
-    p1name = @builder.get_object("player1name")
-    p2name = @builder.get_object("player2name")
+  def validate_network
+    errors = []
+    if not @ui["player1name"].text.strip.length > 0
+      errors << "Player must have a name."
+    end
+    if not @ui["host"].text.strip.length > 0
+      errors << "Please specify a host."
+    end
+    if not @ui["port"].text.strip.length > 0
+      errors << "Please specify a port."
+    end
+    if errors.length > 0
+      error_dialog errors do
+        @ui['dialog1'].present
+      end
+    end
+    errors.length == 0
+  end
+
+  def error_dialog(messages,head="Oops...",&block)
+    dialog = Gtk::MessageDialog.new(@window,
+      Gtk::Dialog::DESTROY_WITH_PARENT, Gtk::MessageDialog::ERROR, 
+      Gtk::MessageDialog::BUTTONS_CLOSE, head)
+    # Coerce to array.
+    messages = [*messages]
+    dialog.set_secondary_text messages.join("\n")
+    dialog.show_all
+    dialog.signal_connect "destroy", &block
+    # This is not intuitive at all. Run then destroy to show a dialog?
+    dialog.run
+    dialog.destroy
+  end
+
+  def begin_network
+    return unless validate_network
+    host = @network_specific[:host].text
+    port = @network_specific[:port].text
+    name = @network_specific[:port].text
+
+    @game.game = @ui["GameCombo"].active
+    @game.difficulty = @ui["DifficultyCombo"].active
+    
+    player = create_player( @ui['player1name'].text, false )
+    @game.players << player
+
+    begin
+      @client = Client.new player.name, host, port
+    rescue Errno::EADDRINUSE, Errno::ECONNREFUSED, Errno::EHOSTUNREACH
+      error_dialog "Could not connect."
+    end
+  end
+
+  def begin_solo
+    @game.game = @ui["GameCombo"].active
+    @game.difficulty = @ui["DifficultyCombo"].active
+    p1name = @ui["player1name"]
+    p2name = @ui["player2name"]
     p1ai = @builder.get_object("ai1")
     p2ai = @builder.get_object("ai2")
-    @game.players = [
-      Player.new( p1name.text, p1ai.active? ? Player::TYPE_AI : Player::TYPE_HUMAN ),
-      Player.new( p2name.text, p2ai.active? ? Player::TYPE_AI : Player::TYPE_HUMAN )
-    ]
+    @game.players << create_player(p2name.text, p2ai.active?)
+    @game.players << create_player(p1name.text, p1ai.active?)
     @game.reset
-    hideSettings()
+  end
+
+  def create_player(name, ai)
+    Player.new( name, ai ? Player::TYPE_AI : Player::TYPE_HUMAN )
+  end
+
+  def save_settings
+    if @network.active? and not validate_network
+      return
+    end
+    if @network.active?
+      begin_network
+    else
+      begin_solo
+    end
+    hide_settings
   end
   private
 
-  def hideSettings
-    dialog = @builder.get_object("dialog1")
-    dialog.hide()
+  def show_settings
+    @ui['dialog1'].run
+  end
+
+  def hide_settings
+    @ui["dialog1"].hide
   end
   private
 
@@ -237,7 +361,6 @@ class Controller
   def quit
     Gtk.main_quit()
   end
-
 
 end
 

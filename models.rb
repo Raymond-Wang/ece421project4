@@ -46,28 +46,19 @@ class Game < Model
 
   property :id, Serial
   property :board, Object
-  property :currentPlayer, Integer
-  # property :difficulty, Integer
+  property :currentPlayer, String
+  property :difficulty, Integer
   property :turn, Integer
   property :completed, Integer
   property :gamename, String
+  property :game, String
   has n, :players
   
   # Row 0 is at the top, Col 0 is on the left
   # In Connect 4, '1' is player piece, '2' is computer piece
   # In OTTO TOOT, '1' is O, '2' is T, and computer plays as TOOT
-  def initialize(dif=2, players=[], game=GAME_C4)
-    super nil
-    # Array of all players. Can be modified dynamically as players leave
-    # and enter.
-    for player in players
-      self.players << player
-    end
-    self.currentPlayer = 0
-    self.game = game 
-    self.turn = 1
-    self.difficulty = dif
-    self.board = Array.new(HEIGHT) { Array.new(WIDTH) } 
+  def initialize(*args)
+    super
   end
 
   # Start the game.
@@ -95,7 +86,7 @@ class Game < Model
     end
     @completed = state
     changed(true)
-    notify_observers U_COMPLETED, state, @players[@currentPlayer]
+    notify_observers U_COMPLETED, state, @currentPlayer
     if not @completed == state
       raise PostconditionError, "State not set correctly."
     end
@@ -127,18 +118,27 @@ class Game < Model
   end
   
   def players=(players)
-    if not(players.respond_to? :each)
-      raise PreconditionError, 'Players should be an enumerable.'
-    else
-      players.each { |p| 
-        if not p.kind_of? Player 
-          raise PreconditionError, 'Players enumerable should only contain player objects.'
-        end
-      }
+    precondition do
+      if not(players.respond_to? :each)
+        raise PreconditionError, 'Players should be an enumerable.'
+      else
+        players.each { |p| 
+          if not p.kind_of? Player 
+            raise PreconditionError, 'Players enumerable should only contain player objects.'
+          end
+        }
+      end
     end
-    @players = players
-    if not @players.length == players.length
-      raise PostconditionError, "Players not set correctly."
+
+    @players.clear
+    for player in players
+      @players << players
+    end
+
+    postcondition do
+      if not @players.length == players.length
+        raise PostconditionError, "Players not set correctly."
+      end
     end
   end
 
@@ -195,9 +195,9 @@ class Game < Model
 
   # Col is 0 indexed
   def place_tile(col)
-    raise PreconditionError, "Game is done" unless @completed == Game::ONGOING
-    if not @players.length >= MIN_PLAYERS
-      raise PreconditionError, "Not enough players."
+    precondition do
+      raise "Game is done." unless @completed == Game::ONGOING
+      raise "Not enough player." unless @players.length >= MIN_PLAYERS
     end
 
     body = lambda do
@@ -227,12 +227,14 @@ class Game < Model
     initial_turn = @turn
     result = body.call
 
-    # Rubyism
-    if not !!result == result
-      raise PostconditionError, "Result should be boolean."
-    else
-      if @completed == Game::ONGOING and result and @turn == initial_turn
-        raise PostconditionError, "Turn should have advanced if the tile was placed."
+    postcondition do
+      # Rubyism
+      if not !!result == result
+        raise PostconditionError, "Result should be boolean."
+      else
+        if @completed == Game::ONGOING and result and @turn == initial_turn
+          raise PostconditionError, "Turn should have advanced if the tile was placed."
+        end
       end
     end
     result
@@ -244,7 +246,9 @@ class Game < Model
 
   # Check and assign completion state by checking with the strategy.
   def check_status
-    raise PostconditionError, "Strategy is incomplete." unless @strategy.respond_to? :status
+    precondition do
+      raise "Strategy is incomplete." unless @strategy.respond_to? :status
+    end
     status = @strategy.status
     completed = Game::ONGOING
     case status
@@ -264,8 +268,10 @@ class Game < Model
     if completed != Game::ONGOING
       self.completed = completed
     end
-    if completed == Game::ONGOING and not movesRemaining?
-      raise PostconditionError, "Game is no longer ongoing and should be completed."
+    postcondition do
+      if completed == Game::ONGOING and not movesRemaining?
+        raise "Game is no longer ongoing and should be completed."
+      end
     end
     @completed
   end
@@ -279,7 +285,9 @@ class Game < Model
     self.players = @players
     self.difficulty = @difficulty
     self.currentPlayer = @currentPlayer
-    raise PostconditionError, "Notifiers should have been sent." unless not changed?
+    postcondition do 
+      raise "Notifiers should have been sent." unless not changed?
+    end
   end
 
   # Reset the game to the starting turn. Give control to the first player.
@@ -294,11 +302,8 @@ class Game < Model
         notify_observers U_BOARD, r, c, @board[r][c]
       end
     end
-    if @turn != 1
-      raise PostconditionError, "Turn should be set to one after reset."
-    end
-    if @currentPlayer != 0
-      raise PostconditionError, "Player should be reset."
+    postcondition do
+      raise "Turn should be set to one after reset." unless @turn == 1
     end
     # Let the computer move if necessary.
     computer_actions
@@ -333,17 +338,16 @@ class Game < Model
   end
 
   def currentPlayer=(player)
-    if player > @players.length
-      raise PreconditionError, "Invalid player number."
+    precondition do
+      raise unless @players or @players.include? player
     end
     @currentPlayer = player
     changed(true)
-    notify_observers U_PLAYER, @currentPlayer, @players[@currentPlayer]
+    notify_observers U_PLAYER, @currentPlayer
   end
 
   def current_piece
-    # Happens to work for now.
-    @currentPlayer + 1
+    @turn % 2
   end
 
   # col should be 0 indexed
@@ -402,7 +406,6 @@ class Player < Model
         raise  "Invalid player type."
       end
     end
-    super name: name, type: type
   end
 
   def desc

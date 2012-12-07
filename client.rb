@@ -30,26 +30,29 @@ class ClientProxy
 end
 
 class Client
-  TIMEOUT = 3600
+  # 3 seconds should be plenty locally
+  TIMEOUT = 3
 
   attr_accessor :game
 
-  def initialize(game,player,host,port)
-    @game, @host, @port, @player = game, host, port, player
+  def initialize(player,host,port)
+    @host, @port, @player = host, port, player
     @myhost = Util.get_ip
 
     # So now client can send requests to the sever.
     # How does the server communicate with client?
     @out = XMLRPC::Client.new @host, "/", @port
+    @out.timeout=Client::TIMEOUT
 
     @proxy = ClientProxy.new self
     # Rertry until success
-    @service_port = Util.port_retry do |port|
+    @myport = Util.port_retry do |port|
       @in = XMLRPC::Server.new port, @myhost
+      Util.biglog "Client server: #{@myhost}:#{port}"
       @in.add_handler "game", @proxy
     end
 
-    if @service_port.nil? or @in.nil?
+    if @myport.nil? or @in.nil?
       raise "Failed client service server."
     else
       serve
@@ -65,20 +68,53 @@ class Client
   private :serve
 
   def greet
-    call "greet", @myhost, @service_port
+    rpc "greet", @myhost, @myport
+  end
+
+  def create(game_type)
+    precondition do
+      # I don't want to repeat myself with the assertions 
+      # inside of the game model. But lets at least confirm this much...
+      raise unless game_type > 0
+    end
+
+    id = rpc "create", game_type 
+    @game = Game.get(id)
+
+    postcondition do
+      raise if not(@game.id)
+    end
+  end
+
+  def join(id)
+    precondition do
+      raise unless id > 0
+    end
+
+    id = rpc "join", id  
+    Util.biglog "Joining #{id}"
+    @game = Game.get(id)
+
+    Util.biglog "Joined #{@game}"
+
+    postcondition do
+      raise if not(@game.id)
+    end
   end
 
   def wait(time)
-    call "wait", time
+    rpc "wait", time
   end
 
   def place_tile(col)
     @game.place_tile col
-    call "place_tile", col
+    rpc "place_tile", col
   end
 
-  def call(m,*args)
-    @out.call "game.#{m}", @player, *args
+  def rpc(m,*args)
+    Util.log m, *args
+    @out.call "game.#{m}", @player.to_s, *args
+    Util.log m+" done"
   end
 
 end
