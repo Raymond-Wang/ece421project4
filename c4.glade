@@ -79,29 +79,14 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="player2settings">
-                <property name="visible">True</property>
-                <property name="yalign">1</property>
-                <property name="label" translatable="yes">Player 2
-
-</property>
-              </object>
-              <packing>
-                <property name="top_attach">3</property>
-                <property name="bottom_attach">4</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkHBox" id="hbox1">
                 <property name="visible">True</property>
                 <child>
                   <object class="GtkCheckButton" id="ai2">
-                    <property name="label" translatable="yes">ai
-</property>
+                    <property name="label" translatable="yes">ai</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
-                    <property name="yalign">1</property>
                     <property name="draw_indicator">True</property>
                   </object>
                   <packing>
@@ -133,12 +118,10 @@
                 <property name="visible">True</property>
                 <child>
                   <object class="GtkCheckButton" id="ai1">
-                    <property name="label" translatable="yes">ai
-</property>
+                    <property name="label" translatable="yes">ai</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
-                    <property name="yalign">1</property>
                     <property name="draw_indicator">True</property>
                   </object>
                   <packing>
@@ -164,21 +147,6 @@
                 <property name="top_attach">2</property>
                 <property name="bottom_attach">3</property>
               </packing>
-            </child>
-            <child>
-              <object class="GtkLabel" id="player1settings">
-                <property name="visible">True</property>
-                <property name="yalign">1</property>
-                <property name="label" translatable="yes">Player 1
-</property>
-              </object>
-              <packing>
-                <property name="top_attach">2</property>
-                <property name="bottom_attach">3</property>
-              </packing>
-            </child>
-            <child>
-              <placeholder/>
             </child>
             <child>
               <object class="GtkCheckButton" id="checkbutton1">
@@ -239,6 +207,29 @@
                 <property name="right_attach">2</property>
                 <property name="top_attach">6</property>
                 <property name="bottom_attach">7</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label6">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Player 2</property>
+              </object>
+              <packing>
+                <property name="top_attach">3</property>
+                <property name="bottom_attach">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="label7">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Player 1</property>
+              </object>
+              <packing>
+                <property name="top_attach">2</property>
+                <property name="bottom_attach">3</property>
               </packing>
             </child>
           </object>
