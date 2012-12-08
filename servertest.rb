@@ -206,7 +206,11 @@ class ClientServerTest < Test::Unit::TestCase
     assert_equal Game::GAME_C4, c_james.game.game
 
     # Wait for clients to sync
-    sleep 2
+    sleep 0.2 
+
+    server.start game
+
+    sleep 3
 
     assert_equal Game::ONGOING, c_ravi.game.state
 

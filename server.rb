@@ -1,7 +1,9 @@
 require "xmlrpc/server"
+require "xmlrpc/client"
 require "thread"
 require "./util"
 require "./dummygame"
+require "./models"
 
 class GameProxy
   def initialize(gameserver)
@@ -54,26 +56,15 @@ class ClientChannel
     @sem = Mutex.new
     @receipt = 1
     @history = []
-
-    # Don't block.
-    Thread.new do
-      @out = XMLRPC::Client.new host, "/", port
-    end
-
+    @out = XMLRPC::Client.new host, "/", port
     # Doesn't quite fit. Client is read to start the game.
     @ready = false
   end
 
   def method_missing(m, *args, &block)
-    @sem.synchronize do
-      @receipt = @receipt + 1
-      @args.unshift @receipt
-      if @history.length > 10
-        @history.slice!(0)
-      end
-      @history <<  { receipt: receipt,  method: m, args: args}
+    Thread.new do
+      @out.call "gameclient.#{m}", *args
     end
-    @out.call2_async "gameclient.#{m}", *args
   end
 end
 
@@ -107,8 +98,9 @@ class GameServer
   end
 
   def serve
-    @server.serve
     Util.biglog "Server running on #{@host}:#{@ip}"
+    @server.serve
+    Util.biglog "Server Done"
   end
 
   # Acknowledges a new player with a corresponding service running
@@ -121,7 +113,8 @@ class GameServer
       if @channels.has_key? player.name then return false end
       begin
         @channels[player.name] = ClientChannel.new(player.name, host, port)
-      rescue
+      rescue Exception => e
+        binding.pry
         # TODO Check for exceptions.
         return false
       end
@@ -154,11 +147,28 @@ class GameServer
       end
     end
     @channels[player.name].ready = true
+    if ready? game
+      start (game)
+    end
     return game.id
   end
 
-  def ready? game
-    game.players.all? do |player|
+  def start(game)
+    precondition do
+      game.state == Game::WAITING
+      game.players.length == 2
+    end
+    game.reset
+    game.save!
+    notify_start game
+    postcondition do
+      game.state == Game::ONGOING
+    end 
+    true
+  end
+
+  def ready?(game)
+    game.players.length == 2 and game.players.all? do |player|
       @channels[player.name].ready
     end
   end
@@ -168,23 +178,12 @@ class GameServer
     Util.biglog "Game is Starting"
     # This is bizarre. The async calls inside of clientchannel shouldn't block.
     # But they do. Nightmareish deadlock issue there.
-    Thread.new do
-      game.players.each do |player|
-        @channels[player.name].notify_start(game.currentPlayer)
-      end
+    for player in game.players do
+      channel = @channels[player.name]
+      channel.out.call "gameclient.notify_start", game.players.first.name
     end
+    true
   end
 
-  def notify_turn(turn,except=nil)
-  end
-
-  def notify_place_tile(col,except=nil)
-  end
-
-  def notify_player(player,except=nil)
-  end
-
-  def with_channels(having=nil)
-  end
 
 end

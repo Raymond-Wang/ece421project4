@@ -12,6 +12,8 @@ class Model
 end
 
 class Game < Model
+  include DataMapper::Resource
+
   # Update types for observers
   U_BOARD = 0
   U_TURN = 1
@@ -41,9 +43,8 @@ class Game < Model
   HEIGHT = 6
   WIDTH = 7
 
-  MIN_PLAYERS = 2
+  REQUIRED_PLAYERS = 2
 
-  include DataMapper::Resource
 
   attr_accessor :client
 
@@ -102,7 +103,7 @@ class Game < Model
     end
     super
     changed(true)
-    notify_observers U_state, state, @currentPlayer
+    notify_observers U_COMPLETED, state, @currentPlayer
     if not @state == state
       raise PostconditionError, "State not set correctly."
     end
@@ -192,8 +193,18 @@ class Game < Model
     @strategy.move
   end
 
-  def canMove?
-    @players[@currentPlayer].type != Player::TYPE_AI and @state == ONGOING
+  def game_label
+    map = { GAME_C4 => "C4", GAME_OTTO =>"Otto"}
+    map[self.game]
+  end
+
+  def state_label
+    map =  { 1 => "Draw", 2 =>"Over", 3 =>"Waiting", 0 => "Ongoing" }
+    map[self.state]
+  end
+
+  def can_move?
+    @players.find { |v,k| v.type != Player::TYPE_AI } and @state == ONGOING
   end
 
   # col is the 0 indexed column
@@ -210,7 +221,7 @@ class Game < Model
   def place_tile(col)
     precondition do
       raise "Game is done." unless @state == Game::ONGOING
-      raise "Not enough player." unless @players.length >= MIN_PLAYERS
+      raise "Not enough player." unless @players.length == REQUIRED_PLAYERS
     end
 
     body = lambda do
@@ -303,9 +314,10 @@ class Game < Model
   # Reset the game to the starting turn. Give control to the first player.
   def reset
     self.turn = 1
-    self.currentPlayer = 0
-    self.state = Game::ONGOING
+    self.state = ONGOING
     self.board # Triggers default value if necessary.
+    self.players
+    self.currentPlayer = self.players.first
     (0...HEIGHT).each do |r|
       (0...WIDTH).each do |c|
         @board[r][c] = nil
@@ -320,24 +332,14 @@ class Game < Model
     computer_actions
   end
 
-  def get_tile(r,c) 
-    if not r.between?(1,HEIGHT)
-      raise PreconditionError, "Row outside of range."
-    end
-
-    if not c.between?(1,WIDTH)
-      raise PreconditionError, "Col outside of range."
-    end
-  end
-
   # Advance to the next turn and cycle through per-turn actions.
   def next_turn
     precondition do
       raise "Game is not ongoing." unless @state == Game::ONGOING
-      raise "Not enough players" unless @players.length > MIN_PLAYERS
+      raise "Not enough players" unless @players.length == REQUIRED_PLAYERS
     end
     self.turn = @turn + 1
-    self.currentPlayer  = @players.find { |p| p != @currentPlayer }
+    self.currentPlayer = @players.find { |p| p != @currentPlayer }
     # Move if necessary.
     computer_actions
   end
@@ -358,11 +360,10 @@ class Game < Model
   end
 
   def current_piece
-    @turn % 2
+    @turn % 2 + 1
   end
 
   # col should be 0 indexed
-  # TODO private
   def next_tile(col)
     result = nil
     (HEIGHT-1).downto(0) { |i|
@@ -408,18 +409,6 @@ class Player < Model
   property :elo, Integer
   has n, :games, :through => Resource
 
-  def initialize(name,type=TYPE_HUMAN)
-    precondition do
-      if not name.respond_to? :to_s
-        raise "Players name cannot be represented as a string."
-      end
-      if not TYPES.include? type
-        raise  "Invalid player type."
-      end
-    end
-    super name: name, type: type
-  end
-
   def desc
     if @type == TYPE_AI
       return "Computer Opponent"
@@ -429,19 +418,6 @@ class Player < Model
   end
 end
 
-class Move < Model
-  attr_accessor :x, :y
-  def initialize(x,y)
-    @x, @y = x, y
-  end
-end
-
-# Because of the complexity of the game model.
-# We don't want to to incorporate model functionality directly.
-# Instead, we'll use this class to stash game state and reload it.
-# This is admittedly, a design smell.
-class GameState
-end
-
 DataMapper.finalize
-DataMapper.auto_migrate!
+#DataMapper.auto_migrate!
+DataMapper.auto_upgrade!

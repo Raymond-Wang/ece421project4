@@ -1,10 +1,8 @@
 require "xmlrpc/client"
 require "xmlrpc/server"
 require "socket"
-
 require "./util"
 require "./dummygame"
-
 
 
 # Receives updates from the game server.
@@ -14,32 +12,31 @@ class ClientProxy
   end
 
   def notify_place_tile(col)
-    Util.debug @client.game.inspect
-    @client.game.place_tile col
+    Util.biglog "Got the Start Message"
     true
   end
 
   def notify_player(player)
-    Util.debug @client.game.inspect
-    @client.game.add_player player
+    Util.biglog "Got the Start Message"
     true
   end
   
-  def notify_start(player)
-    @client.start player
+  def notify_start(id)
+    @client.start id
     true
   end
 end
 
-class Client
-  TIMEOUT = 1000 
+class Client 
+
+  TIMEOUT = 10 
 
   attr_accessor :game
 
   def initialize(player,host,port,timeout=Client::TIMEOUT)
-    @q = Queue.new
     @host, @port, @player = host, port, player
     @myhost = Util.get_ip
+    @sem = Mutex.new
 
     # So now client can send requests to the sever.
     # How does the server communicate with client?
@@ -49,16 +46,12 @@ class Client
     @proxy = ClientProxy.new(self)
 
     # Rertry until success
-    @myport = Util.port_retry do |port|
-      @in = XMLRPC::Server.new port, @myhost
-      Util.biglog "Client server: #{@myhost}:#{port}"
-      @in.add_handler "gameclient", @proxy
-    end
-
-    if @myport.nil? or @in.nil?
-      raise "Failed client service server."
-    else
-      serve
+    @sem.synchronize do
+      @myport = Util.port_retry do |port|
+        @in = XMLRPC::Server.new port, @myhost
+        @in.add_handler "gameclient", @proxy
+        Util.biglog "Client server: #{@myhost}:#{port}"
+      end
     end
   end
 
@@ -66,16 +59,17 @@ class Client
     Thread.new do
       @in.serve
     end
+    true
   end
-  private :serve
 
-  def start(player)
+  def start
+    @game.sync
     # Need to wait for a game join.
-    @q.pop
     @game.start player
   end
 
   def greet
+    Util.biglog "Greetings from #{@myhost}:#{@myport}"
     rpc "greet", @myhost, @myport
   end
 
@@ -87,15 +81,14 @@ class Client
     end
 
     id = rpc "create", game_type 
-
-    @q << id
     @game = Game.get(id)
 
     postcondition do
-      raise if not(@game.id)
+      raise unless id
     end
   end
 
+  # Id is the game.
   def join(id)
     precondition do
       raise unless id > 0
@@ -103,13 +96,15 @@ class Client
 
     id = rpc "join", id  
 
-    @q << id
     @game = Game.get(id)
 
     postcondition do
-      raise if not(@game.id)
-      raise if @q.size > 1
+      raise unless id
     end
+  end
+
+  def start(id)
+    @game = id
   end
 
   def wait(time)

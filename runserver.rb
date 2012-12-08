@@ -2,7 +2,6 @@ require "./server"
 require "./util"
 ip = Util.get_ip
 server = nil
-Util.port_retry do |port|
-  server = GameServer.new port, ip
-end
+server = GameServer.new 50500, ip
+Util.biglog ip
 server.serve

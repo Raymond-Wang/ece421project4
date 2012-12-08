@@ -72,6 +72,9 @@ class Controller
         quit
       end
       
+      @sem = Mutex.new
+      @cv = ConditionVariable.new
+
       # The 'Cancel' button in Settings will negate any changes to the settings and close the window
       @network = @builder.get_object("network")
       @network.signal_connect( "clicked" ) do
@@ -102,7 +105,7 @@ class Controller
       @game = Game.new 
 
       # Register observer
-      @game.add_observer self, :notify
+      @game.add_observer self, :update_ui
       # Synchronize ui
       @game.sync
 
@@ -110,6 +113,10 @@ class Controller
       @window.show
       open_settings
       # Buttons disabled initially.
+      
+      
+      # Used to coordinate handshake.
+      @q = Queue.new
       Gtk.main()
     end
   end
@@ -134,24 +141,24 @@ class Controller
     end
   end
 
-  def notify(what,*args)
+  def update_ui(what,*args)
     case what
     when Game::U_BOARD
-      notify_board *args
+      update_ui_board *args
     when Game::U_RESET
       reset_board *args
     when Game::U_PLAYER
-      notify_player *args
+      update_ui_player *args
     when Game::U_TURN
-      notify_turn *args
+      update_ui_turn *args
     when Game::U_GAME
-      notify_game *args
+      update_ui_game *args
     when Game::U_COMPLETED
-      notify_completed *args
+      update_ui_completed *args
     end
   end
 
-  def notify_completed(state,player)
+  def update_ui_completed(state,player)
     if state != Game::ONGOING
       @ui["victorybox"].show()
       if state == Game::DRAW
@@ -164,7 +171,7 @@ class Controller
   end
 
   def toggle_buttons
-    if @game.canMove?
+    if @game.can_move?
       enable_buttons
     else
       disable_buttons
@@ -183,16 +190,17 @@ class Controller
     }
   end
 
-  def notify_board(row,col,piece)
+  def update_ui_board(row,col,piece)
     i = col + ((row)*Game::WIDTH) + 1
+    puts "piece is #{piece}.inspect\n" 
     @builder.get_object("image#{i}").pixbuf = Gdk::Pixbuf.new(image_for_piece(piece))
   end
 
-  def notify_turn(turn)
+  def update_ui_turn(turn)
     @builder.get_object("turn").text = "Turn: #{turn}" 
   end
 
-  def notify_game(game)
+  def update_ui_game(game)
     case game
     when Game::GAME_OTTO
       label = "Game Type: Otto"
@@ -202,13 +210,17 @@ class Controller
     @builder.get_object("game_type").text = label
   end
 
-  def notify_player(current,player)
+  def update_ui_player(currentPlayer)
     toggle_buttons
-    @builder.get_object("incoming").pixbuf = Gdk::Pixbuf.new(image_for_piece(current+1))
-    @game.players.each_with_index do |player,i|
-      label = @builder.get_object("player#{i+1}")
-      desc = @builder.get_object("player#{i+1}desc")
-      if current != i 
+    piece = @game.current_piece
+    @builder.get_object("incoming").pixbuf = Gdk::Pixbuf.new(image_for_piece(piece))
+    
+    i = 0
+    @game.players.each_with_index do |player,x|
+      i = i + 1
+      label = @ui["player#{i}"]
+      desc = @ui["player#{i}desc"]
+      if currentPlayer.name != player.name 
         label.text = "#{player.name}"
         desc.text = "Player Type: #{player.desc}"
       else
@@ -257,20 +269,20 @@ class Controller
       @ui["ai2"].active = @game.players[1].type == Player::TYPE_AI
     end
 
-    @ui['host'].text = "192.168.2.1"
-    @ui['port'].text = "50560"
+    @ui['host'].text = "192.168.1.130"
+    @ui['port'].text = "50500"
   end
   private 
 
   def validate_solo
     errors = []
     if not @ui["player1name"].text.strip.length > 0
-      if not @ui["ui2"].active?
+      if not @ui["ai1"].active?
         errors << "Player 1 must have a name."
       end
     end
     if not @ui["player2name"].text.strip.length > 0
-      if not @ui["ui2"].active?
+      if not @ui["ai2"].active?
         errors << "Player 1 must have a name."
       end
     end
@@ -302,14 +314,25 @@ class Controller
   end
 
   def error_dialog(messages,head="Oops...",&block)
+      dialog(messages,head,Gtk::MessageDialog::ERROR,&block)
+  end
+  
+  def info_dialog(messages,head="Oops...",&block)
+      dialog(messages,head,Gtk::MessageDialog::INFO,&block)
+  end
+
+
+  def dialog(messages,head,type,&block)
     dialog = Gtk::MessageDialog.new(@window,
-      Gtk::Dialog::DESTROY_WITH_PARENT, Gtk::MessageDialog::ERROR, 
+      Gtk::Dialog::DESTROY_WITH_PARENT,type, 
       Gtk::MessageDialog::BUTTONS_CLOSE, head)
     # Coerce to array.
     messages = [*messages]
     dialog.set_secondary_text messages.join("\n")
     dialog.show_all
-    dialog.signal_connect "destroy", &block
+    if block_given?
+      dialog.signal_connect "destroy", &block
+    end
     # This is not intuitive at all. Run then destroy to show a dialog?
     dialog.run
     dialog.destroy
@@ -321,21 +344,55 @@ class Controller
     port = @network_specific[:port].text
     name = @network_specific[:port].text
 
-    @game.game = @ui["GameCombo"].active
-    @game.difficulty = @ui["DifficultyCombo"].active
-    
-    player = create_player( @ui['player1name'].text, false )
-    @game.players << player
-
+    @greeted = ConditionVariable.new
+    @player = Player.first_or_create( :name => @ui['player1name'].text )
     begin
-      @client = Client.new player.name, host, port
+      client = Client.new @player, @ui["host"].text, @ui["port"].text
+      Thread.new do
+        client.serve
+      end
+      @q << client.greet
+      @client = client
     rescue Errno::EADDRINUSE, Errno::ECONNREFUSED, Errno::EHOSTUNREACH
-      error_dialog "Could not connect."
+      error_dialog "Could not connect to directory server."
+    end
+    show_games
+  end
+
+  def create_game
+    @game = Game.create
+    @game.difficulty = @ui["DifficultyCombo"].active
+    @game.game = @ui['GameCombo'].active
+    @game.players << @player
+    @player.save
+    @game.save
+    Thread.new do
+      @sem.synchronize do
+        @q.pop
+        @client.join  @game.id
+      end
+    end
+    info_dialog "Waiting for a player..."
+  end
+
+  def open_game(id)
+    game = Game.get(id)
+    if not game
+      error_dialog "Game no longer exists. Odd." 
+    elsif game.players.length === 2 and not game.players.any? { |p| p.name == p1name }
+      error_dialog "You didn't participate in this game."
+    else
+      @ui['window3'].hide
+      info_dialog "Waiting for a player..."
     end
   end
 
+  def p1name
+    @ui["player1name"].text
+  end
+
   def begin_solo
-    return unless validate_network
+    return unless validate_solo
     @game.game = @ui["GameCombo"].active
     @game.difficulty = @ui["DifficultyCombo"].active
     p1name = @ui["player1name"]
@@ -345,11 +402,11 @@ class Controller
     @game.players << create_player(p2name.text, p2ai.active?)
     @game.players << create_player(p1name.text, p1ai.active?)
     @game.reset
-    @game.start
+    @game.start p1name.text
   end
 
   def create_player(name, ai)
-    Player.new( name, ai ? Player::TYPE_AI : Player::TYPE_HUMAN )
+    Player.first_or_create( :name => name, :type => ai ? Player::TYPE_AI : Player::TYPE_HUMAN )
   end
 
   def save_settings
@@ -376,18 +433,60 @@ class Controller
 
   def openAbout
     about = @builder.get_object("window2")
+    # How's this for an Easter egg? Use this to nuke the db ;)
+    DataMapper.auto_migrate!
     about.show()
   end
   private
   
   def button_clicked(col)
     @game.place_tile(col-1)
+    @client.place_tile(col-1)
   end  
 
   def quit
     Gtk.main_quit()
   end
 
+  def open_games
+    Game.all.select { |game| game.players.length == 1 }
+  end
+
+  def show_games
+      window = @builder.get_object("window3")
+      window.signal_connect( "destroy" ) { quit }
+      
+      treeview = @ui["serverlist"]
+      liststore = @builder.get_object("liststore3")
+
+      liststore.clear()
+
+      games = open_games
+
+      for item in games 
+        iter = liststore.append
+        liststore.set_value(iter, 0, item.game_label)
+        if item.players.length > 0
+          liststore.set_value(iter, 1, item.players.first.name)
+        else
+        end
+        liststore.set_value(iter, 2, item.id)
+      end
+
+      @ui['joinbutton'].signal_connect "clicked" do
+        if treeview.selection and treeview.selection.selected
+          open_game treeview.selection.selected.get_value 2
+        else
+          error_dialog "You didn't select a game."
+        end
+      end
+
+      @ui['createbutton'].signal_connect "clicked" do
+        create_game
+      end
+
+      window.show
+  end
 end
 
 controller = Controller.new
