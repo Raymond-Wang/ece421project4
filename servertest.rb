@@ -96,6 +96,13 @@ class ClientServerTest < Test::Unit::TestCase
     assert_equal 3, c_ravi.game.turn
     assert_equal "James", c_james.game.currentPlayer
     assert_equal "James", c_ravi.game.currentPlayer
+
+    c_ravi.place_tile 0
+    sleep 0.2
+    assert_equal 4, c_james.game.turn
+    assert_equal 4, c_ravi.game.turn
+    assert_equal "Ravi", c_james.game.currentPlayer
+    assert_equal "Ravi", c_ravi.game.currentPlayer
   end
 
 end

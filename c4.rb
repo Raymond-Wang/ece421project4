@@ -152,7 +152,7 @@ class Controller
   end
 
   def update_ui_completed(state,player)
-    if state != Game::ONGOING
+    if state == Game::WIN || state == Game::DRAW
       @ui["victorybox"].show()
       if state == Game::DRAW
         @ui["victoryplayer"].set_markup("<span weight=\"bold\" foreground=\"#0097ff\">Game is a draw!</span>")
@@ -185,8 +185,7 @@ class Controller
 
   def update_ui_board(row,col,piece)
     i = col + ((row)*Game::WIDTH) + 1
-    puts "piece is #{piece}.inspect\n" 
-    @builder.get_object("image#{i}").pixbuf = Gdk::Pixbuf.new(image_for_piece(piece))
+    @ui["image#{i}"].pixbuf = Gdk::Pixbuf.new(image_for_piece(piece))
   end
 
   def update_ui_turn(turn)
@@ -204,7 +203,12 @@ class Controller
   end
 
   def update_ui_player(currentPlayer)
+    # TODO Distinction between network and single mode.
     toggle_buttons
+    if @client.player.name != currentPlayer
+      disable_buttons
+    end
+
     piece = @game.current_piece
     @builder.get_object("incoming").pixbuf = Gdk::Pixbuf.new(image_for_piece(piece))
     

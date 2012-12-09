@@ -241,15 +241,17 @@ class Game < Model
 
       r,c = next_tile(col)
 
-      # This is a hack to make datamapper objects save. It doesn't seem
-      # to recognize minor changes to content to I trick it by 
-      # doing this. Ugh.
-      self.board[r][c] = current_piece
-      board = self.board.dup
-      self.board = 1
-      save
-      self.board = board
-      save
+      @@sem.synchronize do
+        # This is a hack to make datamapper objects save. It doesn't seem
+        # to recognize minor changes to content to I trick it by 
+        # doing this. Ugh.
+        self.board[r][c] = current_piece
+        board = self.board.dup
+        self.board = 1
+        save
+        self.board = board
+        save
+      end
 
       changed(true)
 
@@ -294,9 +296,6 @@ class Game < Model
       raise "Strategy is incomplete." unless @strategy.respond_to? :status
     end
     status = @strategy.status
-    if status != Game::ONGOING
-      binding.pry
-    end
     state = Game::ONGOING
     case status
     when Strategy::P1_WIN
@@ -336,7 +335,8 @@ class Game < Model
       self.currentPlayer = self.currentPlayer
       self.board = self.board
       board_each do |r,c|
-        notify_observers U_BOARD, r, c, self.board[r][c]
+        changed(true)
+        notify_observers U_BOARD, r, c, @board[r][c]
       end
     end
   end
@@ -356,7 +356,7 @@ class Game < Model
     self.board # Triggers default value if necessary.
     self.players
     self.currentPlayer = self.players.first
-    board_each do |r,c|j
+    board_each do |r,c|
       self.board[r][c] = nil
       changed(true)
       notify_observers U_BOARD, r, c, self.board[r][c]
@@ -376,7 +376,7 @@ class Game < Model
       raise "Not enough players" unless self.players.length == REQUIRED_PLAYERS
     end
     self.turn = self.turn + 1
-    self.currentPlayer = self.players.find { |p| p != self.currentPlayer }.name
+    self.currentPlayer = self.players.find { |p| p.name != self.currentPlayer }.name
     save
     # Move if necessary.
     computer_actions
