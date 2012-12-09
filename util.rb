@@ -48,9 +48,10 @@ module Util
     pad = size-message.length-2
     lpad = (pad/2).ceil
     rpad = (pad/2).floor
-    puts "="*size+"\n"
-    puts "="+(" "*rpad)+message+(" "*lpad)+"="+"\n"
-    puts "="*size+"\n"
+    str = "="*size+"\n"
+    str << "="+(" "*rpad)+message+(" "*lpad)+"="+"\n"
+    str << "="*size+"\n"
+    puts str
   end
 
   def debug_conf(*args)

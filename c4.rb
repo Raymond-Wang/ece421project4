@@ -102,13 +102,6 @@ class Controller
         @ui["victorybox"].hide()
       end
 
-      @game = Game.new 
-
-      # Register observer
-      @game.add_observer self, :update_ui
-      # Synchronize ui
-      @game.sync
-
       disable_buttons
       @window.show
       open_settings
@@ -164,7 +157,7 @@ class Controller
       if state == Game::DRAW
         @ui["victoryplayer"].set_markup("<span weight=\"bold\" foreground=\"#0097ff\">Game is a draw!</span>")
       else
-        @ui["victoryplayer"].set_markup("<span weight=\"bold\" foreground=\"#0097ff\">*#{player.name} has won!</span>")
+        @ui["victoryplayer"].set_markup("<span weight=\"bold\" foreground=\"#0097ff\">*#{player} has won!</span>")
       end
     end
     toggle_buttons
@@ -217,10 +210,14 @@ class Controller
     
     i = 0
     @game.players.each_with_index do |player,x|
+      if player.nil?
+        binding.pry
+        next
+      end
       i = i + 1
       label = @ui["player#{i}"]
       desc = @ui["player#{i}desc"]
-      if currentPlayer.name != player.name 
+      if currentPlayer != player.name 
         label.text = "#{player.name}"
         desc.text = "Player Type: #{player.desc}"
       else
@@ -257,6 +254,8 @@ class Controller
     dialog.present
     gameCombo = @ui["GameCombo"]
     difficultyCombo = @ui["DifficultyCombo"]
+
+    @game ||= Game.create
     gameCombo.active=@game.game
     difficultyCombo.active=@game.difficulty
 
@@ -283,7 +282,7 @@ class Controller
     end
     if not @ui["player2name"].text.strip.length > 0
       if not @ui["ai2"].active?
-        errors << "Player 1 must have a name."
+        errors << "Player 2 must have a name."
       end
     end
     if errors.length > 0
@@ -317,7 +316,7 @@ class Controller
       dialog(messages,head,Gtk::MessageDialog::ERROR,&block)
   end
   
-  def info_dialog(messages,head="Oops...",&block)
+  def info_dialog(messages,head="Waiting.",&block)
       dialog(messages,head,Gtk::MessageDialog::INFO,&block)
   end
 
@@ -361,17 +360,22 @@ class Controller
 
   def create_game
     @game = Game.create
+    # Register observer
+    @game.add_observer self, :update_ui
     @game.difficulty = @ui["DifficultyCombo"].active
     @game.game = @ui['GameCombo'].active
     @game.players << @player
     @player.save
     @game.save
+    @client.game = @game
     Thread.new do
       @sem.synchronize do
         @q.pop
-        @client.join  @game.id
+        @client.join @game.id
       end
     end
+    # Synchronize ui
+    @game.sync
     info_dialog "Waiting for a player..."
   end
 
@@ -383,6 +387,19 @@ class Controller
       error_dialog "You didn't participate in this game."
     else
       @ui['window3'].hide
+      @game = Game.get(id)
+      @game.add_observer self, :update_ui
+      @game.players << @player
+      @player.save
+      @game.save
+      Thread.new do
+        @sem.synchronize do
+          @q.pop
+          @client.game = @game
+          @client.join @game.id
+        end
+      end
+      @game.sync
       info_dialog "Waiting for a player..."
     end
   end
@@ -393,6 +410,8 @@ class Controller
 
   def begin_solo
     return unless validate_solo
+    @game = Game.create
+
     @game.game = @ui["GameCombo"].active
     @game.difficulty = @ui["DifficultyCombo"].active
     p1name = @ui["player1name"]
@@ -403,10 +422,17 @@ class Controller
     @game.players << create_player(p1name.text, p1ai.active?)
     @game.reset
     @game.start p1name.text
+
+    # Register observer
+    @game.add_observer self, :update_ui
+    # Synchronize ui
+    @game.sync
   end
 
   def create_player(name, ai)
-    Player.first_or_create( :name => name, :type => ai ? Player::TYPE_AI : Player::TYPE_HUMAN )
+    p = Player.first_or_create( :name => name )
+    p.type = (ai ? Player::TYPE_AI : Player::TYPE_HUMAN)
+    p
   end
 
   def save_settings
@@ -440,7 +466,6 @@ class Controller
   private
   
   def button_clicked(col)
-    @game.place_tile(col-1)
     @client.place_tile(col-1)
   end  
 
@@ -474,6 +499,7 @@ class Controller
       end
 
       @ui['joinbutton'].signal_connect "clicked" do
+        @ui['window3'].hide
         if treeview.selection and treeview.selection.selected
           open_game treeview.selection.selected.get_value 2
         else
@@ -482,10 +508,11 @@ class Controller
       end
 
       @ui['createbutton'].signal_connect "clicked" do
+        @ui['window3'].hide
         create_game
       end
-
       window.show
+      window.present
   end
 end
 

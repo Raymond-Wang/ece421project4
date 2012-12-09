@@ -7,8 +7,24 @@ require "./init"
 require "./error"
 require "./strategy"
 
+module SimpleObserver
+  def add_observer(observer)
+    @observers ||= []
+    @observers << observer
+  end
+
+  def notify_obsevers(cmd,*args)
+    for obs in @observers
+      @observers.send cmd, *args
+    end
+  end
+end
+
 class Model
   include Observable
+  def get_observers
+    @observer_peers
+  end
 end
 
 class Game < Model
@@ -57,6 +73,8 @@ class Game < Model
   property :gamename, String, :default => "Brand Spanking New"
   property :game, Integer, :default => GAME_C4
   has n, :players, :through => Resource
+
+  @@sem = Mutex.new
   
   # Useful for testing.
   def self.blank_board
@@ -72,15 +90,18 @@ class Game < Model
 
   # Start the game.
   def start(currentPlayer)
-    sync
-    @currentPlayer = currentPlayer
-    @state = ONGOING
+    reload
+    self.currentPlayer = currentPlayer
+    self.state = ONGOING
+    self.players = self.players
+    self.turn = 1
+    save
     init_strategy
     computer_actions
   end
 
   def ready?
-    @state == WAITING || @state == ONGOING and @players.length == 2
+    self.state == WAITING || self.state == ONGOING and self.players.length == 2
   end
 
   def difficulty=(dif)
@@ -90,10 +111,10 @@ class Game < Model
     super
     changed(true)
     notify_observers U_DIFFICULTY, dif
-    if not @difficulty == dif
+    if not self.difficulty == dif
       raise PostconditionError, "Difficulty not set correctly."
     end
-    @difficulty
+    self.difficulty
   end
 
   # The game has been finished.
@@ -103,11 +124,11 @@ class Game < Model
     end
     super
     changed(true)
-    notify_observers U_COMPLETED, state, @currentPlayer
-    if not @state == state
+    notify_observers U_COMPLETED, state, self.currentPlayer
+    if not self.state == state
       raise PostconditionError, "State not set correctly."
     end
-    @state
+    self.state
   end
 
   def game=(game)
@@ -118,9 +139,9 @@ class Game < Model
     changed(true)
     notify_observers U_GAME, game
     postcondition do
-      raise "Game type not set" unless @game == game
+      raise "Game type not set" unless self.game == game
     end
-    @game
+    self.game
   end
 
   def turn=(turn)
@@ -131,37 +152,21 @@ class Game < Model
     changed(true)
     notify_observers U_TURN, turn
     postcondition do
-      raise "Turn not set correctly." unless @turn == turn
+      raise "Turn not set correctly." unless self.turn == turn
     end
   end
-  
-  def players=(players)
-    Util.biglog "Assigning players"
-    precondition do
-      if not(players.respond_to? :each)
-        raise PreconditionError, 'Players should be an enumerable.'
-      else
-        players.each { |p| 
-          if not p.kind_of? Player 
-            raise PreconditionError, 'Players enumerable should only contain player objects.'
-          end
-        }
-      end
-    end
+
+  def player=(player)
+    notify_observers U_PLAYER self.currentPlayer
     super
-    postcondition do
-      if not @players.length == players.length
-        raise PostconditionError, "Players not set correctly."
-      end
-    end
   end
 
   # Somewhat of a factory method for the strategy but 
   # we don't yet require a factory abstraction
   def init_strategy
-    if @game == GAME_C4 
+    if self.game == GAME_C4 
       @strategy = C4Strategy.new self
-    elsif @game == GAME_OTTO
+    elsif self.game == GAME_OTTO
       @strategy = OttoStrategy.new self
     end
     postcondition do
@@ -175,11 +180,11 @@ class Game < Model
   end
 
   def movesRemaining?
-    @turn < WIDTH*HEIGHT
+    self.turn < WIDTH*HEIGHT
   end
 
   def computer_actions
-    @players.reject { |p| p.type != Player::TYPE_AI } .each do
+    self.players.reject { |p| p.type != Player::TYPE_AI } .each do
       # Delay ai's move so it appears to think
       Thread.new do
         sleep 0.3
@@ -204,13 +209,13 @@ class Game < Model
   end
 
   def can_move?
-    @players.find { |v,k| v.type != Player::TYPE_AI } and @state == ONGOING
+    self.players.find { |v,k| v.type != Player::TYPE_AI } and self.state == ONGOING
   end
 
   # col is the 0 indexed column
   def check_col(col)
     (0...HEIGHT).each { |r|
-      if @board[r][col] == nil
+      if self.board[r][col] == nil
         return true
       end
     }
@@ -220,9 +225,12 @@ class Game < Model
   # Col is 0 indexed
   def place_tile(col)
     precondition do
-      raise "Game is done." unless @state == Game::ONGOING
-      raise "Not enough player." unless @players.length == REQUIRED_PLAYERS
+      raise "Game is done." unless (self.state == Game::ONGOING or self.state == Game::WAITING)
+      raise "Not enough player." unless self.players.length == REQUIRED_PLAYERS
     end
+
+    # Set state to ongoig if we've been waiting.
+    self.state = Game::ONGOING
 
     body = lambda do
       if not col.between?(0,WIDTH-1)
@@ -232,23 +240,32 @@ class Game < Model
       return false unless check_col(col)
 
       r,c = next_tile(col)
-      @board[r][c] = current_piece
+
+      # This is a hack to make datamapper objects save. It doesn't seem
+      # to recognize minor changes to content to I trick it by 
+      # doing this. Ugh.
+      self.board[r][c] = current_piece
+      board = self.board.dup
+      self.board = 1
+      save
+      self.board = board
+      save
+
       changed(true)
 
       # Provide 1 indexed values externally.
-      notify_observers U_BOARD, r, c, @board[r][c]
+      notify_observers U_BOARD, r, c, self.board[r][c]
 
       # Sets and checks!
       check_status
 
-      if @state == Game::ONGOING
+      if self.state == Game::ONGOING
         next_turn
       end
-
       return true
     end
 
-    initial_turn = @turn
+    initial_turn = self.turn
     result = body.call
 
     postcondition do
@@ -256,7 +273,7 @@ class Game < Model
       if not !!result == result
         raise "Result should be boolean."
       else
-        if @state == Game::ONGOING and result and @turn == initial_turn
+        if self.state == Game::ONGOING and result and self.turn == initial_turn
           raise "Turn should have advanced if the tile was placed."
         end
       end
@@ -271,9 +288,15 @@ class Game < Model
   # Check and assign completion state by checking with the strategy.
   def check_status
     precondition do
+      if @strategy.nil?
+        init_strategy
+      end
       raise "Strategy is incomplete." unless @strategy.respond_to? :status
     end
     status = @strategy.status
+    if status != Game::ONGOING
+      binding.pry
+    end
     state = Game::ONGOING
     case status
     when Strategy::P1_WIN
@@ -297,18 +320,33 @@ class Game < Model
         raise "Game is no longer ongoing and should be completed."
       end
     end
-    @state
+    self.state
   end
 
   # Re-trigger notifications on all object properties.
   def sync
-    reload
-    # Accesses all variables as a creative way of sending signals.
-    self.turn
-    self.game
-    self.players
-    self.difficulty
-    self.currentPlayer
+    @@sem.synchronize do
+      reload
+      # Accesses all variables as a creative way of sending signals.
+      self.turn = self.turn
+      self.game = self.game
+      self.state = self.state
+      self.players = self.players
+      self.difficulty = self.difficulty
+      self.currentPlayer = self.currentPlayer
+      self.board = self.board
+      board_each do |r,c|
+        notify_observers U_BOARD, r, c, self.board[r][c]
+      end
+    end
+  end
+
+  def board_each 
+    (0...HEIGHT).each do |r|
+      (0...WIDTH).each do |c|
+        yield r,c
+      end
+    end
   end
 
   # Reset the game to the starting turn. Give control to the first player.
@@ -318,15 +356,14 @@ class Game < Model
     self.board # Triggers default value if necessary.
     self.players
     self.currentPlayer = self.players.first
-    (0...HEIGHT).each do |r|
-      (0...WIDTH).each do |c|
-        @board[r][c] = nil
-        changed(true)
-        notify_observers U_BOARD, r, c, @board[r][c]
-      end
+    board_each do |r,c|j
+      self.board[r][c] = nil
+      changed(true)
+      notify_observers U_BOARD, r, c, self.board[r][c]
     end
+    binding.pry
     postcondition do
-      raise "Turn should be set to one after reset." unless @turn == 1
+      raise "Turn should be set to one after reset." unless self.turn == 1
     end
     # Let the computer move if necessary.
     computer_actions
@@ -335,11 +372,12 @@ class Game < Model
   # Advance to the next turn and cycle through per-turn actions.
   def next_turn
     precondition do
-      raise "Game is not ongoing." unless @state == Game::ONGOING
-      raise "Not enough players" unless @players.length == REQUIRED_PLAYERS
+      raise "Game is not ongoing." unless self.state == Game::ONGOING
+      raise "Not enough players" unless self.players.length == REQUIRED_PLAYERS
     end
-    self.turn = @turn + 1
-    self.currentPlayer = @players.find { |p| p != @currentPlayer }
+    self.turn = self.turn + 1
+    self.currentPlayer = self.players.find { |p| p != self.currentPlayer }.name
+    save
     # Move if necessary.
     computer_actions
   end
@@ -347,27 +385,24 @@ class Game < Model
   def turn=(val)
     super
     changed(true)
-    notify_observers U_TURN, @turn
+    notify_observers U_TURN, self.turn
   end
 
   def currentPlayer=(player)
-    precondition do
-      raise unless @players or @players.include? player
-    end
-    @currentPlayer = player
+    super
     changed(true)
-    notify_observers U_PLAYER, @currentPlayer
+    notify_observers U_PLAYER, self.currentPlayer 
   end
 
   def current_piece
-    @turn % 2 + 1
+    (self.turn % 2) + 1
   end
 
   # col should be 0 indexed
   def next_tile(col)
     result = nil
     (HEIGHT-1).downto(0) { |i|
-      if @board[i][col] == nil
+      if self.board[i][col] == nil
         result = [i,col]
         break
       end
@@ -389,7 +424,7 @@ class Game < Model
   def to_s
     (0...HEIGHT).each { |r|
       (0...WIDTH).each { |c|
-        puts "#{@board[r][c].nil? ? '-' : @board[r][c]}"
+        puts "#{self.board[r][c].nil? ? '-' : self.board[r][c]}"
       }
       puts "\n"
     }
@@ -410,7 +445,7 @@ class Player < Model
   has n, :games, :through => Resource
 
   def desc
-    if @type == TYPE_AI
+    if self.type == TYPE_AI
       return "Computer Opponent"
     else
       return "Human"

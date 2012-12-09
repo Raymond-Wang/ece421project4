@@ -11,27 +11,28 @@ class ClientProxy
     @client = client
   end
 
-  def notify_place_tile(col)
-    Util.biglog "Got the Start Message"
-    true
-  end
-
-  def notify_player(player)
-    Util.biglog "Got the Start Message"
+  def sync
+    Util.biglog "Got the Sync Message for #{@client.player.name}"
+    @client.sync 
     true
   end
   
-  def notify_start(id)
-    @client.start id
+  def notify_start(player)
+    Util.biglog "Got the Start Message for #{@client.player.name}"
+    begin
+      @client.start player
+    rescue Exception => e
+      binding.pry
+    end
     true
   end
 end
 
 class Client 
 
-  TIMEOUT = 10 
+  TIMEOUT = 1000 
 
-  attr_accessor :game
+  attr_reader :game, :player
 
   def initialize(player,host,port,timeout=Client::TIMEOUT)
     @host, @port, @player = host, port, player
@@ -55,6 +56,11 @@ class Client
     end
   end
 
+  def game=(game)
+    Util.biglog "Setting game. If overwriting an existing one, we may have bugs."
+    @game = game
+  end
+
   def serve
     Thread.new do
       @in.serve
@@ -62,49 +68,42 @@ class Client
     true
   end
 
-  def start
+  # Receives a game start event form the server.
+  def start(player)
+    precondition do
+      raise "Player not provided." if player.nil?
+    end
     @game.sync
-    # Need to wait for a game join.
     @game.start player
   end
 
+  # Receives a game sync event from the server.
+  def sync
+    @game.sync
+  end
+
+
+  ## REMOTE COMMANDS ##
+
   def greet
-    Util.biglog "Greetings from #{@myhost}:#{@myport}"
+    precondition do 
+      raise if @myhost.nil? or @myport.nil?
+    end
     rpc "greet", @myhost, @myport
   end
 
-  def create(game_type)
-    precondition do
-      # I don't want to repeat myself with the assertions 
-      # inside of the game model. But lets at least confirm this much...
-      raise unless game_type > 0
-    end
-
-    id = rpc "create", game_type 
-    @game = Game.get(id)
-
-    postcondition do
-      raise unless id
-    end
-  end
-
-  # Id is the game.
+  # Joins a game with the given id.
   def join(id)
     precondition do
       raise unless id > 0
     end
 
     id = rpc "join", id  
-
-    @game = Game.get(id)
-
+    @game.sync
+    
     postcondition do
       raise unless id
     end
-  end
-
-  def start(id)
-    @game = id
   end
 
   def wait(time)
@@ -112,12 +111,19 @@ class Client
   end
 
   def place_tile(col)
+    precondition do 
+      raise "Column should be a number." unless col.kind_of? Numeric
+    end
     @game.place_tile col
-    rpc "place_tile", col
+    rpc "place_tile", col, @game.id
   end
 
   def rpc(m,*args)
-    @out.call "game.#{m}", @player.name, *args
+    begin
+      @out.call "game.#{m}", @player.name, *args
+    rescue XMLRPC::FaultException => e
+      binding.pry
+    end
   end
 
 end

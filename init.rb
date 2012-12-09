@@ -3,7 +3,7 @@ require 'data_mapper'
 
 Thread.abort_on_exception = true
 
-DataMapper::Logger.new($stdout, :debug)
+#DataMapper::Logger.new($stdout, :debug)
 if ENV['ECETUNNEL']
   DataMapper.setup(:default, 'mysql://jacob:whatever@localhost/group4')
 else

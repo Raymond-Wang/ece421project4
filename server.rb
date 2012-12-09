@@ -10,15 +10,7 @@ class GameProxy
     @gameserver = gameserver
   end
 
-  def connect
-    return @gameserver.event_port
-  end
-
-  def place_tile(player, col)
-    @gameserver.place_tile player, col
-    col
-  end
-
+  ## DIAGNOSTIC COMMANDS ##
   def echo(player, val)
     val
   end
@@ -28,16 +20,35 @@ class GameProxy
     time
   end
 
+  # Uses pry extension/gem to enter an interactive
+  # console when an exception happens so that we can inspect things.
+  # Uses 'exit' to continue.
+  def debug_block 
+    begin
+      yield
+    rescue Exception => e
+      binding.pry
+    end
+  end
+
+  ## ACTUAL COMMANDS ##
+  def place_tile(player, col, id)
+    debug_block  do
+      @gameserver.place_tile player, col, id
+    end
+    col
+  end
+
   def greet(player,host,service_port)
-    @gameserver.greet player, host, service_port
+    debug_block do
+        @gameserver.greet player, host, service_port
+    end
   end
 
   def join(player,id)
-    @gameserver.join player, id 
-  end
-
-  def create(player,game_type)
-    @gameserver.create player, id, game_type
+    debug_block do
+      @gameserver.join player, id 
+    end
   end
 end
 
@@ -52,8 +63,6 @@ class ClientChannel
   def initialize(player, host, port)
     @player, @host, @port = player, host, port
 
-    # Some mechanisms for robustness.
-    @sem = Mutex.new
     @receipt = 1
     @history = []
     @out = XMLRPC::Client.new host, "/", port
@@ -95,6 +104,7 @@ class GameServer
     # It's not the most effecient means of doing it - we could likely
     # have a more granular configuration.
     @sem = Mutex.new
+    @sem2 = Mutex.new
   end
 
   def serve
@@ -108,6 +118,7 @@ class GameServer
   def greet(player,host,port)
     player = Player.first_or_create(name: player)
     # Don't allow multiple connections from the same name.
+    Util.biglog "Hello #{player}"
     @sem.synchronize do
       # TODO Already exists.
       if @channels.has_key? player.name then return false end
@@ -115,71 +126,107 @@ class GameServer
         @channels[player.name] = ClientChannel.new(player.name, host, port)
       rescue Exception => e
         binding.pry
-        # TODO Check for exceptions.
         return false
       end
     end
     return true
   end
 
-  def create(player, game_type)
-    game = Game.create game: game_type
-    game.players << Player.first_or_create(name: player)
-    game.save 
-    @channels[player].ready = true
-    return game.id
-  end
-
+  # Joins a given player to a game. If this cause the game to be ready, then
+  # we also start the game.
   def join(player,id)
-    Util.biglog "Player: #{player} is joining..."
-    game = Game.get(id)
-    player = Player.first_or_create name: player
+    Util.biglog "Player: #{player} is joining game id: #{id}"
+    @sem.synchronize do
+      game = Game.get(id)
+      player = Player.first_or_create name: player
 
-    # Rejoining our own game?
-    if not game.players.include? player
+      # Rejoining our own game?
+      if not game.players.include? player
       # Ensure we don't let more than 2 players squeeze in.
-      @sem.synchronize do
         if game.players and game.players.length >= 2
           Util.debug "Too many players in the game."
           return false
         end
-        game.players <<  player
+        game.players << player
+        game.save
+      end
+
+      if @channels[player.name].nil?
+        # Well.. the server lots it's pipe to client.
+        raise "No channel to connecting client."
+      else
+        @channels[player.name].ready = true
+        if ready? game
+          start (game)
+        end
       end
     end
-    @channels[player.name].ready = true
-    if ready? game
-      start (game)
-    end
-    return game.id
+    id
   end
 
+  # Places a tile in the game.
+  def place_tile(player,col,id)
+    game = Game.get(id)
+    @sem.synchronize do
+      async_game_channels game do |channel|
+        channel.out.call "gameclient.sync"  
+      end
+    end
+    true
+  end
+
+  # Gets the game started and notifies clients.
   def start(game)
     precondition do
       game.state == Game::WAITING
       game.players.length == 2
     end
-    game.reset
-    game.save!
+    @sem2.synchronize do
+      game.state = Game::ONGOING
+      game.currentPlayer = game.players.first.name
+    end
     notify_start game
     postcondition do
       game.state == Game::ONGOING
     end 
     true
   end
+  # Relies on synchronization from game.
+  private :start
 
+  # Are the clients ready? Is the game ready?
   def ready?(game)
     game.players.length == 2 and game.players.all? do |player|
       @channels[player.name].ready
     end
   end
 
+  # Iterates over the servers channels to client for a given game.
+  def game_channels(game)
+    for player in game.players do
+      channel = @channels[player.name]
+      if not channel.nil?
+        yield channel
+      else
+        Util.biglog "Player's channel is missing."
+      end 
+    end
+  end
+
+  # Wraps the game channels call in a thread to make it nonblocking.
+  def async_game_channels(game)
+    game_channels game do |channel|
+      Thread.new do
+        yield channel
+      end
+    end
+  end
+
   # These handle communications between clients.
   def notify_start(game)
     Util.biglog "Game is Starting"
-    # This is bizarre. The async calls inside of clientchannel shouldn't block.
-    # But they do. Nightmareish deadlock issue there.
-    for player in game.players do
-      channel = @channels[player.name]
+    async_game_channels game do |channel| 
+      Util.biglog "Notifying..."
       channel.out.call "gameclient.notify_start", game.players.first.name
     end
     true
